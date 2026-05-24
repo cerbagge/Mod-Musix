@@ -111,28 +111,62 @@ public final class MusixMidi {
     /** 메인 스레드에서 NoteOn 처리. MIDI 콜백 스레드에서 client.execute() 로 전달됨. */
     static void processNoteOn(int channel, int midiNote, int velocity) {
         MusixConfig cfg = MusixClient.config();
-        if (cfg == null || !cfg.midiEnabled) return;
+        if (cfg == null) { LOG.warn("[MIDI] config null"); return; }
+        if (!cfg.midiEnabled) {
+            if (cfg.debugMode) DebugChat.warn("[MIDI] midiEnabled OFF — note=" + midiNote);
+            return;
+        }
 
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.player == null || client.interactionManager == null) return;
-        if (!(client.currentScreen instanceof GenericContainerScreen gcs)) return;
+        if (client == null) { LOG.warn("[MIDI] client null"); return; }
+        if (client.player == null) {
+            if (cfg.debugMode) DebugChat.warn("[MIDI] player 없음 (서버 연결 안 됨?)");
+            return;
+        }
+        if (client.interactionManager == null) {
+            if (cfg.debugMode) DebugChat.warn("[MIDI] interactionManager 없음");
+            return;
+        }
+        if (!(client.currentScreen instanceof GenericContainerScreen gcs)) {
+            if (cfg.debugMode) {
+                String s = client.currentScreen == null ? "null"
+                        : client.currentScreen.getClass().getSimpleName();
+                DebugChat.warn("[MIDI] 악기 상자 안 열림 (현재: " + s + ") — note=" + midiNote);
+            }
+            return;
+        }
         Text title = gcs.getTitle();
-        if (title == null || !cfg.titleMatchesPrefix(title.getString())) return;
+        if (title == null) {
+            if (cfg.debugMode) DebugChat.warn("[MIDI] 상자 제목 null");
+            return;
+        }
+        String titleStr = title.getString();
+        if (!cfg.titleMatchesPrefix(titleStr)) {
+            if (cfg.debugMode) DebugChat.warn("[MIDI] 상자 제목 매칭 실패: '" + titleStr + "'");
+            return;
+        }
 
-        String preset = cfg.activePresetForTitle(title.getString());
+        String preset = cfg.activePresetForTitle(titleStr);
         String noteName = midiNoteToName(midiNote);
         if (noteName == null) {
-            if (cfg.debugMode) DebugChat.warn("[MIDI] 범위 밖 노트 " + midiNote + " 무시");
+            if (cfg.debugMode) DebugChat.warn("[MIDI] 범위 밖 노트 " + midiNote + " 무시 (F#2~F#6 만)");
             return;
         }
 
         // 활성 preset 의 음들 중 매칭 찾기
         List<KeyBindings.NoteEntry> notes = KeyBindings.getNotes(preset);
+        if (notes.isEmpty()) {
+            if (cfg.debugMode) DebugChat.warn("[MIDI] preset '" + preset + "' 매핑 비어있음");
+            return;
+        }
         for (KeyBindings.NoteEntry note : notes) {
             if (!noteName.equals(note.mapping().note)) continue;
             int slot = note.mapping().slot;
             GenericContainerScreenHandler handler = gcs.getScreenHandler();
-            if (slot < 0 || slot >= handler.slots.size()) return;
+            if (slot < 0 || slot >= handler.slots.size()) {
+                if (cfg.debugMode) DebugChat.warn("[MIDI] 슬롯 인덱스 범위 밖: " + slot);
+                return;
+            }
             if (MusixConfig.BLOCKED_SLOTS.contains(slot)) {
                 if (cfg.debugMode) DebugChat.warn("[MIDI] 차단 슬롯 " + slot + " — 스킵");
                 return;
@@ -146,7 +180,8 @@ public final class MusixMidi {
             }
             return;
         }
-        if (cfg.debugMode) DebugChat.warn("[MIDI] 매핑 없음: " + noteName + " (MIDI " + midiNote + ")");
+        if (cfg.debugMode) DebugChat.warn("[MIDI] 매핑 없음: '" + noteName + "' (MIDI " + midiNote
+                + ", preset='" + preset + "', " + notes.size() + "음 등록됨)");
     }
 
     private static SlotActionType parseAction(String name) {
@@ -167,13 +202,24 @@ public final class MusixMidi {
         public void send(MidiMessage message, long timeStamp) {
             if (!(message instanceof ShortMessage sm)) return;
             int cmd = sm.getCommand();
+            int ch = sm.getChannel();
+            int note = sm.getData1();
+            int vel = sm.getData2();
+
+            // v4.0.2: 디버그 모드일 때 모든 NoteOn/NoteOff raw 로그 — 신호 도달 확인용
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client != null && (cmd == ShortMessage.NOTE_ON || cmd == ShortMessage.NOTE_OFF)) {
+                client.execute(() -> {
+                    MusixConfig cfg = MusixClient.config();
+                    if (cfg != null && cfg.debugMode) {
+                        String t = (cmd == ShortMessage.NOTE_ON && vel > 0) ? "ON " : "OFF";
+                        DebugChat.info("[MIDI-RAW] " + t + " ch=" + ch + " note=" + note + " vel=" + vel);
+                    }
+                });
+            }
+
             // NoteOn + velocity > 0 만 처리 (velocity 0 인 NoteOn = NoteOff 의 일반적 패턴)
-            if (cmd == ShortMessage.NOTE_ON && sm.getData2() > 0) {
-                int ch = sm.getChannel();
-                int note = sm.getData1();
-                int vel = sm.getData2();
-                // 메인 스레드 큐잉
-                MinecraftClient client = MinecraftClient.getInstance();
+            if (cmd == ShortMessage.NOTE_ON && vel > 0) {
                 if (client != null) {
                     client.execute(() -> processNoteOn(ch, note, vel));
                 }
