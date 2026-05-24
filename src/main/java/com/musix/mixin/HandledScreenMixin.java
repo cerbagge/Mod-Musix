@@ -12,6 +12,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Text;
+import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -55,6 +56,15 @@ public class HandledScreenMixin {
                 String si = stack.isEmpty() ? "빈슬롯" : (stack.getName().getString() + "x" + stack.getCount());
                 DebugChat.ok("[Mixin] " + note.mapping().note + " slot=" + slot + " (" + si + ")");
             }
+            cir.setReturnValue(true);
+            return;
+        }
+        // v3.11.1: 매핑 없는 modifier 조합 (Shift+E 등) 은 차단 — 인벤토리 닫힘 방지.
+        // 일반 키 (modifier 없음) 는 마크 기본 동작 통과 (채팅 T, 명령어 / 등 사용 가능).
+        // ESC 도 통과 (상자 닫기).
+        int relevant = modifiers & KeyBindings.MOD_MASK;
+        if (relevant != 0 && keyCode != GLFW.GLFW_KEY_ESCAPE) {
+            if (cfg.debugMode) DebugChat.warn("[Mixin] 매핑 없는 modifier 조합 차단 key=" + keyCode + " mods=" + modifiers);
             cir.setReturnValue(true);
             return;
         }

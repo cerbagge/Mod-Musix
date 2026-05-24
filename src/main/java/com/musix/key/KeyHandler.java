@@ -97,6 +97,13 @@ public final class KeyHandler {
                 return true;
             }
         }
+        // v3.11.1: 매핑 없는 modifier 조합 (Shift+E 등) 차단 — 인벤토리 닫힘 방지.
+        // 일반 키 (modifier 없음) 는 마크 기본 동작 통과. ESC 도 통과.
+        int relevant = modifiers & KeyBindings.MOD_MASK;
+        if (relevant != 0 && key != org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+            if (cfg.debugMode) DebugChat.warn("[KeyHandler] 매핑 없는 modifier 조합 차단 key=" + key + " mods=" + modifiers);
+            return true;
+        }
         if (cfg.debugMode) DebugChat.warn("[KeyHandler] 매칭 없음 (preset=" + preset + ")");
         return false;
     }
