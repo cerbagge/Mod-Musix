@@ -55,7 +55,7 @@ A client-side Fabric mod that lets you play PlanetEarth's chest-GUI based instru
 - `A S D` → snare high / mid / low
 - `Z X C` → cymbal high / mid / low
 
-Blocked slots (never mapped): `6, 19, 32, 45, 53` — server GUI navigation slots.
+Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 ## Build
 

@@ -20,10 +20,11 @@ public class MusixConfig {
     public static final String PRESET_DRUM   = "drum";
 
     /**
-     * v3.9.0: 자동 매핑/dump 에서 항상 제외하는 슬롯.
+     * 자동 매핑/dump 에서 항상 제외하는 슬롯.
      * PlanetEarth 서버 GUI 의 네비게이션/장식 슬롯이라 음표로 잘못 매칭되면 안 됨.
+     * v3.10.2: 슬롯 32 는 실제 스네어-하 매핑에 사용되므로 제거 ({6, 19, 45, 53} 만 차단).
      */
-    public static final Set<Integer> BLOCKED_SLOTS = Set.of(6, 19, 32, 45, 53);
+    public static final Set<Integer> BLOCKED_SLOTS = Set.of(6, 19, 45, 53);
 
     /** 전체 preset 순서. v3.2.0: 단순화 — drum 과 그 외 (common). */
     public static final List<String> ALL_PRESETS = new ArrayList<>();
@@ -97,21 +98,21 @@ public class MusixConfig {
         };
         DEFAULT_PRESETS.put(PRESET_COMMON, common49);
 
-        // 드럼 12음 (v3.9.0): 4행 분포. 슬롯은 자동 매핑이 갱신하므로 초기값은 근사.
-        // 차단 슬롯 19/32/45/53 을 피하도록 음표 3개를 행 내 인접 위치로 둠.
+        // 드럼 12음 (v3.10.2): 사용자 명시 정확 슬롯.
+        // 같은 종류는 같은 열(세로) — 베이스(col3), 하이햇(col4), 스네어(col5), 심벌은 행5에 가로.
         DEFAULT_PRESETS.put(PRESET_DRUM, new Object[][] {
-                {"베이스-상", 11, "key.keyboard.1"},
-                {"베이스-중", 12, "key.keyboard.2"},
-                {"베이스-하", 13, "key.keyboard.3"},
-                {"하이햇-상", 20, "key.keyboard.q"},
-                {"하이햇-중", 21, "key.keyboard.w"},
-                {"하이햇-하", 22, "key.keyboard.e"},
-                {"스네어-상", 29, "key.keyboard.a"},
-                {"스네어-중", 30, "key.keyboard.s"},
-                {"스네어-하", 31, "key.keyboard.d"},
-                {"심벌-상", 47, "key.keyboard.z"},
-                {"심벌-중", 48, "key.keyboard.x"},
-                {"심벌-하", 49, "key.keyboard.c"},
+                {"베이스-상", 12, "key.keyboard.1"},
+                {"베이스-중", 21, "key.keyboard.2"},
+                {"베이스-하", 30, "key.keyboard.3"},
+                {"하이햇-상", 13, "key.keyboard.q"},
+                {"하이햇-중", 22, "key.keyboard.w"},
+                {"하이햇-하", 31, "key.keyboard.e"},
+                {"스네어-상", 14, "key.keyboard.a"},
+                {"스네어-중", 23, "key.keyboard.s"},
+                {"스네어-하", 32, "key.keyboard.d"},
+                {"심벌-상",   48, "key.keyboard.z"},
+                {"심벌-중",   49, "key.keyboard.x"},
+                {"심벌-하",   50, "key.keyboard.c"},
         });
     }
 
