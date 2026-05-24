@@ -39,63 +39,64 @@ public class MusixConfig {
     private static final Map<String, Object[][]> DEFAULT_PRESETS = new LinkedHashMap<>();
 
     static {
-        // v3.11.0: common 49음 — 사용자 export 패턴 (Shift 활용으로 키 절약)
-        // {note, slot, key, modifiers}  - modifiers=1 → Shift 조합
+        // v4.0.4: common 49음 — 사용자 export (031223.json) 패턴
+        // 흰건반 = 키 단독, 검은건반 = 같은 키 + Space (modifiers=65536=MOD_SPACE)
+        // {note, slot, key, modifiers}
         Object[][] common49 = new Object[][] {
-                // 옥타브 2 (6): F#2~B2 → ` 1 2 3 (Shift 활용, slot 0~5)
-                {"F#2",   0, "key.keyboard.grave.accent", 1},
+                // 옥타브 2 (6): F#2~B2 → ` 1 2 3 (Space 활용, slot 0~5)
+                {"F#2",   0, "key.keyboard.grave.accent", 65536},
                 {"G2",    1, "key.keyboard.1",            0},
-                {"G#2",   2, "key.keyboard.1",            1},
+                {"G#2",   2, "key.keyboard.1",            65536},
                 {"A2",    3, "key.keyboard.2",            0},
-                {"A#2",   4, "key.keyboard.2",            1},
+                {"A#2",   4, "key.keyboard.2",            65536},
                 {"B2",    5, "key.keyboard.3",            0},
-                // 옥타브 3 (12): C3~B3 → Q W E Y U I O (R/T 건너뜀, slot 7~18, slot 6 비어있음)
+                // 옥타브 3 (12): C3~B3 → Q W E R U I O (T 건너뜀, slot 7~18, slot 6 비어있음)
                 {"C3",    7, "key.keyboard.q",            0},
-                {"C#3",   8, "key.keyboard.q",            1},
+                {"C#3",   8, "key.keyboard.q",            65536},
                 {"D3",    9, "key.keyboard.w",            0},
-                {"D#3",  10, "key.keyboard.w",            1},
+                {"D#3",  10, "key.keyboard.w",            65536},
                 {"E3",   11, "key.keyboard.e",            0},
-                {"F3",   12, "key.keyboard.y",            0},
-                {"F#3",  13, "key.keyboard.y",            1},
+                {"F3",   12, "key.keyboard.r",            0},
+                {"F#3",  13, "key.keyboard.r",            65536},
                 {"G3",   14, "key.keyboard.u",            0},
-                {"G#3",  15, "key.keyboard.u",            1},
+                {"G#3",  15, "key.keyboard.u",            65536},
                 {"A3",   16, "key.keyboard.i",            0},
-                {"A#3",  17, "key.keyboard.i",            1},
+                {"A#3",  17, "key.keyboard.i",            65536},
                 {"B3",   18, "key.keyboard.o",            0},
-                // 옥타브 4 (12): C4~B4 → A S D H J K L (F/G 건너뜀, slot 20~31, slot 19 비어있음)
+                // 옥타브 4 (12): C4~B4 → A S D F J K L (G/H 건너뜀, slot 20~31, slot 19 비어있음)
                 {"C4",   20, "key.keyboard.a",            0},
-                {"C#4",  21, "key.keyboard.a",            1},
+                {"C#4",  21, "key.keyboard.a",            65536},
                 {"D4",   22, "key.keyboard.s",            0},
-                {"D#4",  23, "key.keyboard.s",            1},
+                {"D#4",  23, "key.keyboard.s",            65536},
                 {"E4",   24, "key.keyboard.d",            0},
-                {"F4",   25, "key.keyboard.h",            0},
-                {"F#4",  26, "key.keyboard.h",            1},
+                {"F4",   25, "key.keyboard.f",            0},
+                {"F#4",  26, "key.keyboard.f",            65536},
                 {"G4",   27, "key.keyboard.j",            0},
-                {"G#4",  28, "key.keyboard.j",            1},
+                {"G#4",  28, "key.keyboard.j",            65536},
                 {"A4",   29, "key.keyboard.k",            0},
-                {"A#4",  30, "key.keyboard.k",            1},
+                {"A#4",  30, "key.keyboard.k",            65536},
                 {"B4",   31, "key.keyboard.l",            0},
-                // 옥타브 5 (12): C5~B5 → Z X C N M , . (V/B 건너뜀, slot 33~44, slot 32 비어있음)
+                // 옥타브 5 (12): C5~B5 → Z X C V M , . (N 건너뜀, slot 33~44, slot 32 비어있음)
                 {"C5",   33, "key.keyboard.z",            0},
-                {"C#5",  34, "key.keyboard.z",            1},
+                {"C#5",  34, "key.keyboard.z",            65536},
                 {"D5",   35, "key.keyboard.x",            0},
-                {"D#5",  36, "key.keyboard.x",            1},
+                {"D#5",  36, "key.keyboard.x",            65536},
                 {"E5",   37, "key.keyboard.c",            0},
-                {"F5",   38, "key.keyboard.n",            0},
-                {"F#5",  39, "key.keyboard.n",            1},
+                {"F5",   38, "key.keyboard.v",            0},
+                {"F#5",  39, "key.keyboard.v",            65536},
                 {"G5",   40, "key.keyboard.m",            0},
-                {"G#5",  41, "key.keyboard.m",            1},
+                {"G#5",  41, "key.keyboard.m",            65536},
                 {"A5",   42, "key.keyboard.comma",        0},
-                {"A#5",  43, "key.keyboard.period",       1},
+                {"A#5",  43, "key.keyboard.period",       65536},
                 {"B5",   44, "key.keyboard.period",       0},
-                // 옥타브 6 (7): C6~F#6 → 7 8 9 0 (Shift 활용, slot 46~52, slot 45 비어있음)
+                // 옥타브 6 (7): C6~F#6 → 7 8 9 0 (Space 활용, slot 46~52, slot 45 비어있음)
                 {"C6",   46, "key.keyboard.7",            0},
-                {"C#6",  47, "key.keyboard.7",            1},
+                {"C#6",  47, "key.keyboard.7",            65536},
                 {"D6",   48, "key.keyboard.8",            0},
-                {"D#6",  49, "key.keyboard.8",            1},
+                {"D#6",  49, "key.keyboard.8",            65536},
                 {"E6",   50, "key.keyboard.9",            0},
                 {"F6",   51, "key.keyboard.0",            0},
-                {"F#6",  52, "key.keyboard.0",            1},
+                {"F#6",  52, "key.keyboard.0",            65536},
         };
         DEFAULT_PRESETS.put(PRESET_COMMON, common49);
 
@@ -105,20 +106,23 @@ public class MusixConfig {
         //   col 4 (slot 13/22/31) = 베이스 낮은음 / 중간음 / 높은음
         //   col 5 (slot 14/23/32) = 하이햇 낮은음 / 중간음 / 높은음
         //   row 5 (slot 48/49/50) = 심벌 낮은음 / 중간음 / 높은음
+        // v4.0.4: drum 12음 — 사용자 export 키 매핑
+        // 행별로 같은 키 그룹: row 1 = 1/2/3, row 2 = Q/W/E, row 3 = A/S/D, row 5 = Z/X/C
+        // 열별로 종류: col 3 = 스네어, col 4 = 베이스, col 5 = 하이햇, row 5 = 심벌
         DEFAULT_PRESETS.put(PRESET_DRUM, new Object[][] {
-                // 베이스: 1 / 2 / 3 (낮음→중간→높음)
+                // Row 1 (낮은음): slot 12/13/14 → key 3/1/2
+                {"스네어 낮은음", 12, "key.keyboard.3"},
                 {"베이스 낮은음", 13, "key.keyboard.1"},
-                {"베이스 중간음", 22, "key.keyboard.2"},
-                {"베이스 높은음", 31, "key.keyboard.3"},
-                // 스네어: Q / W / E
-                {"스네어 낮은음", 12, "key.keyboard.q"},
-                {"스네어 중간음", 21, "key.keyboard.w"},
-                {"스네어 높은음", 30, "key.keyboard.e"},
-                // 하이햇: A / S / D
-                {"하이햇 낮은음", 14, "key.keyboard.a"},
-                {"하이햇 중간음", 23, "key.keyboard.s"},
-                {"하이햇 높은음", 32, "key.keyboard.d"},
-                // 심벌: Z / X / C
+                {"하이햇 낮은음", 14, "key.keyboard.2"},
+                // Row 2 (중간음): slot 21/22/23 → key E/Q/W
+                {"스네어 중간음", 21, "key.keyboard.e"},
+                {"베이스 중간음", 22, "key.keyboard.q"},
+                {"하이햇 중간음", 23, "key.keyboard.w"},
+                // Row 3 (높은음): slot 30/31/32 → key D/A/S
+                {"스네어 높은음", 30, "key.keyboard.d"},
+                {"베이스 높은음", 31, "key.keyboard.a"},
+                {"하이햇 높은음", 32, "key.keyboard.s"},
+                // Row 5 (심벌): slot 48/49/50 → key Z/X/C
                 {"심벌 낮은음",   48, "key.keyboard.z"},
                 {"심벌 중간음",   49, "key.keyboard.x"},
                 {"심벌 높은음",   50, "key.keyboard.c"},

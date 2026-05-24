@@ -101,9 +101,9 @@ public class MusixMenuScreen extends Screen {
         context.drawCenteredTextWithShadow(tr, "♪ Musix ♪", cx, 8, COLOR_TITLE);
         context.drawCenteredTextWithShadow(tr, "v" + MusixClient.version(), cx, 20, COLOR_VERSION);
 
-        // ===== 상태 박스 (디버그/접두사 라인 모두 제거 → 고급 설정 화면으로 이동) =====
+        // ===== 상태 박스 (v4.0.4: 클릭 버튼/동작 라인 제거 — 고급 설정에서만) =====
         int statusY = 36, statusX = 20;
-        int statusW = this.width - 40, statusH = 93;
+        int statusW = this.width - 40, statusH = 71;
         context.fill(statusX, statusY, statusX + statusW, statusY + statusH, COLOR_BG);
         drawBorder(context, statusX, statusY, statusW, statusH);
 
@@ -115,19 +115,10 @@ public class MusixMenuScreen extends Screen {
         String active = KeyBindings.activePresetName();
         String shown = currentPreset();
 
-        rowYClickButton = y;
-        context.drawTextWithShadow(tr, "클릭 버튼:", statusX + 10, y, COLOR_LABEL);
-        int bIdx = Math.max(0, Math.min(2, cfg.clickButton));
-        context.drawTextWithShadow(tr, CLICK_BUTTONS[bIdx] + "  [클릭으로 변경]", statusX + 110, y, COLOR_AWAITING);
-        y += 11;
-
-        rowYClickAction = y;
-        context.drawTextWithShadow(tr, "클릭 동작:", statusX + 10, y, COLOR_LABEL);
-        context.drawTextWithShadow(tr, (cfg.clickAction == null ? "PICKUP" : cfg.clickAction) + "  [클릭으로 변경]",
-                statusX + 110, y, COLOR_AWAITING);
-        y += 11;
-
-        rowYDebug = -1; // 고급 설정 화면으로 이동
+        // v4.0.4: 클릭 버튼/동작 라인은 status 박스에서 제거 (고급 설정에서만 변경)
+        rowYClickButton = -1;
+        rowYClickAction = -1;
+        rowYDebug = -1;
 
         rowYAutoMap = y;
         context.drawTextWithShadow(tr, "자동 매핑:", statusX + 10, y, COLOR_LABEL);
@@ -299,13 +290,14 @@ public class MusixMenuScreen extends Screen {
                 }
             }
         }
-        if (mouseY >= rowYClickButton && mouseY < rowYClickButton + ROW_HEIGHT) {
+        // v4.0.4: 클릭 버튼/동작 라인 메뉴에서 제거 (rowY = -1 이면 작동 안 함)
+        if (rowYClickButton >= 0 && mouseY >= rowYClickButton && mouseY < rowYClickButton + ROW_HEIGHT) {
             MusixConfig cfg = MusixClient.config();
             int next = (cfg.clickButton + (button == 1 ? CLICK_BUTTONS.length - 1 : 1)) % CLICK_BUTTONS.length;
             cfg.setClickButton(next);
             return true;
         }
-        if (mouseY >= rowYClickAction && mouseY < rowYClickAction + ROW_HEIGHT) {
+        if (rowYClickAction >= 0 && mouseY >= rowYClickAction && mouseY < rowYClickAction + ROW_HEIGHT) {
             MusixConfig cfg = MusixClient.config();
             int idx = indexOf(CLICK_ACTIONS, cfg.clickAction);
             int next = (idx + (button == 1 ? CLICK_ACTIONS.length - 1 : 1)) % CLICK_ACTIONS.length;
