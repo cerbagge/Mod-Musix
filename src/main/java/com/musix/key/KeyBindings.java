@@ -247,6 +247,22 @@ public final class KeyBindings {
         }
         MusixDatabase.get().replaceMappings(preset, rows);
         LOG.info("[Musix] 이름 기반 자동 매핑: '{}' {}/{} 매칭", preset, matched, notes.size());
+        // v3.10.3: 매칭 실패 시 LOG 에 상세 정보 (사용자 디버그 채팅과 별개로 로그 파일에 남김)
+        if (matched < notes.size()) {
+            LOG.warn("[Musix] 매핑 못한 음 (preset='{}'):", preset);
+            for (NoteEntry note : notes) {
+                if (!usedSlots.contains(note.mapping().slot)
+                        || !names.containsValue(note.mapping().note)) {
+                    LOG.warn("  찾는 음 '{}' (정규화: '{}')",
+                            note.mapping().note, normalizeName(note.mapping().note));
+                }
+            }
+            LOG.warn("[Musix] 슬롯의 실제 아이템 이름:");
+            for (Map.Entry<Integer, String> e : names.entrySet()) {
+                LOG.warn("  [{}] '{}' (정규화: '{}')",
+                        e.getKey(), e.getValue(), normalizeName(e.getValue()));
+            }
+        }
         return new AutoMapResult(matched > 0,
                 "'" + preset + "' 이름 매칭: " + matched + "/" + notes.size());
     }

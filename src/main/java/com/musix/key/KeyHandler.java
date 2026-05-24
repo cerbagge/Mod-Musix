@@ -145,6 +145,10 @@ public final class KeyHandler {
             }
             if (rowSb.length() > 0) DebugChat.ok("  행" + row + ": " + rowSb);
         }
+        // v3.10.3: 슬롯별 아이템 이름까지 출력 (자동매핑 디버그용)
+        for (Map.Entry<Integer, String> e : itemNames.entrySet()) {
+            DebugChat.info("  [" + e.getKey() + "] '" + e.getValue() + "'");
+        }
     }
 
     private static SlotActionType parseAction(String name) {
