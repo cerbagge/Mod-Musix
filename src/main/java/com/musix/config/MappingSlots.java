@@ -185,6 +185,8 @@ public final class MappingSlots {
         root.addProperty("containerPrefix", cfg.containerPrefix);
         root.addProperty("clickButton", cfg.clickButton);
         root.addProperty("clickAction", cfg.clickAction);
+        root.addProperty("midiEnabled", cfg.midiEnabled);
+        root.addProperty("midiDeviceName", cfg.midiDeviceName == null ? "" : cfg.midiDeviceName);
 
         JsonObject presets = new JsonObject();
         for (String preset : MusixConfig.ALL_PRESETS) {

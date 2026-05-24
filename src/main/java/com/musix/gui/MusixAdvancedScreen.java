@@ -50,25 +50,29 @@ public class MusixAdvancedScreen extends Screen {
     @Override
     protected void init() {
         int by = this.height - 28;
-        int btnW = 110, gap = 6;
-        int totalW = btnW * 4 + gap * 3;
+        int btnW = 90, gap = 5;
+        int totalW = btnW * 5 + gap * 4;
         int startX = (this.width - totalW) / 2;
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("매핑 슬롯"),
                 btn -> { if (this.client != null) this.client.setScreen(new MusixSlotsScreen(this)); }
         ).dimensions(startX, by, btnW, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("설정 폴더 열기"),
-                btn -> Util.getOperatingSystem().open(FabricLoader.getInstance().getConfigDir().toFile())
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("MIDI"),
+                btn -> { if (this.client != null) this.client.setScreen(new MusixMidiScreen(this)); }
         ).dimensions(startX + (btnW + gap), by, btnW, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("← 메뉴로"),
-                btn -> { if (this.client != null) this.client.setScreen(this.parent); }
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("설정 폴더"),
+                btn -> Util.getOperatingSystem().open(FabricLoader.getInstance().getConfigDir().toFile())
         ).dimensions(startX + (btnW + gap) * 2, by, btnW, 20).build());
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("← 메뉴"),
+                btn -> { if (this.client != null) this.client.setScreen(this.parent); }
+        ).dimensions(startX + (btnW + gap) * 3, by, btnW, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("닫기"),
                 btn -> this.close()
-        ).dimensions(startX + (btnW + gap) * 3, by, btnW, 20).build());
+        ).dimensions(startX + (btnW + gap) * 4, by, btnW, 20).build());
     }
 
     @Override

@@ -129,8 +129,12 @@ public class MusixConfig {
     public int clickButton;
     public String clickAction;
     public boolean debugMode;
-    /** v3.8.0: 음악/악기 상자가 열릴 때 슬롯 아이템 이름으로 자동 매핑할지 여부. */
+    /** v3.8.0: 악기 상자가 열릴 때 슬롯 아이템 이름으로 자동 매핑할지 여부. */
     public boolean autoMapOnOpen;
+    /** v4.0.0: MIDI 입력 활성화 여부. */
+    public boolean midiEnabled;
+    /** v4.0.0: 연결할 MIDI 장치 이름 (재시작 시 자동 재연결). */
+    public String midiDeviceName;
     /** preset 이름 → 사용자가 정한 표시 이름 (메뉴 표시용). 없으면 preset 이름 그대로. */
     public Map<String, String> presetDisplayNames = new LinkedHashMap<>();
     /** preset 이름 → 매칭할 상자 제목 부분 문자열 (예: "하프"). 매칭되면 그 preset 활성. */
@@ -147,11 +151,13 @@ public class MusixConfig {
         }
 
         MusixConfig config = new MusixConfig();
-        config.containerPrefix = db.getSetting("containerPrefix", "음악,악기");
+        config.containerPrefix = db.getSetting("containerPrefix", "악기");
         config.clickButton     = parseInt(db.getSetting("clickButton", "0"), 0);
         config.clickAction     = db.getSetting("clickAction", "PICKUP");
         config.debugMode       = "true".equalsIgnoreCase(db.getSetting("debugMode", "false"));
         config.autoMapOnOpen   = "true".equalsIgnoreCase(db.getSetting("autoMapOnOpen", "true"));
+        config.midiEnabled     = "true".equalsIgnoreCase(db.getSetting("midiEnabled", "false"));
+        config.midiDeviceName  = db.getSetting("midiDeviceName", "");
 
         for (String preset : ALL_PRESETS) {
             List<KeyMapping> list = new ArrayList<>();
@@ -230,6 +236,14 @@ public class MusixConfig {
     public void setAutoMapOnOpen(boolean enabled) {
         this.autoMapOnOpen = enabled;
         MusixDatabase.get().setSetting("autoMapOnOpen", Boolean.toString(enabled));
+    }
+    public void setMidiEnabled(boolean enabled) {
+        this.midiEnabled = enabled;
+        MusixDatabase.get().setSetting("midiEnabled", Boolean.toString(enabled));
+    }
+    public void setMidiDeviceName(String name) {
+        this.midiDeviceName = name == null ? "" : name;
+        MusixDatabase.get().setSetting("midiDeviceName", this.midiDeviceName);
     }
     public void setPresetDisplayName(String preset, String name) {
         this.presetDisplayNames.put(preset, name);
@@ -331,7 +345,8 @@ public class MusixConfig {
     }
 
     private static void seedAllPresets(MusixDatabase db) {
-        db.setSetting("containerPrefix", "음악,악기");
+        // v4.0.0: "악기" 만으로 통일 (hardcoded fallback 이 "음악" 도 매칭하므로 호환됨)
+        db.setSetting("containerPrefix", "악기");
         db.setSetting("clickButton", "0");
         db.setSetting("clickAction", "PICKUP");
         for (Map.Entry<String, Object[][]> e : DEFAULT_PRESETS.entrySet()) {

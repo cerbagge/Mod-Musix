@@ -1,6 +1,7 @@
 package com.musix;
 
 import com.musix.config.MusixConfig;
+import com.musix.input.MusixMidi;
 import com.musix.key.KeyBindings;
 import com.musix.key.KeyHandler;
 import net.fabricmc.api.ClientModInitializer;
@@ -48,5 +49,14 @@ public class MusixClient implements ClientModInitializer {
         for (String p : MusixConfig.ALL_PRESETS) total += KeyBindings.getNotes(p).size();
         LOG.info("[Musix] 초기화 완료. containerPrefix='{}', notes={} ({} preset)",
                 config.containerPrefix, total, MusixConfig.ALL_PRESETS.size());
+
+        // v4.0.0: 활성화되어 있고 장치명이 저장되어 있으면 MIDI 자동 재연결
+        if (config.midiEnabled && config.midiDeviceName != null && !config.midiDeviceName.isEmpty()) {
+            // 비동기 — MIDI 장치 스캔에 시간이 걸릴 수 있어 메인 init 지연 방지
+            new Thread(() -> {
+                boolean ok = MusixMidi.connect(config.midiDeviceName);
+                LOG.info("[Musix] MIDI 자동 재연결 {}: '{}'", ok ? "성공" : "실패", config.midiDeviceName);
+            }, "musix-midi-init").start();
+        }
     }
 }

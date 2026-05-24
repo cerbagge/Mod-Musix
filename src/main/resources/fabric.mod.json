@@ -3,7 +3,7 @@
   "id": "musix",
   "version": "${version}",
   "name": "Musix",
-  "description": "PlanetEarth Server (planetearth.kr) 전용. 키보드로 서버의 음악/악기 상자 슬롯을 눌러 노트 사운드를 재생하는 클라이언트 모드.",
+  "description": "PlanetEarth Server (planetearth.kr) 전용. 키보드/MIDI 입력으로 서버의 악기 상자 슬롯을 눌러 음을 재생하는 클라이언트 모드.",
   "authors": [
     "MNT"
   ],
