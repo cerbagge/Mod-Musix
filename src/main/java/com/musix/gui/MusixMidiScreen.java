@@ -3,6 +3,7 @@ package com.musix.gui;
 import com.musix.MusixClient;
 import com.musix.config.MusixConfig;
 import com.musix.input.MusixMidi;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -11,6 +12,7 @@ import net.minecraft.text.Text;
 
 import javax.sound.midi.MidiDevice;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * v4.0.0: MIDI 입력 설정 화면.
@@ -32,13 +34,17 @@ public class MusixMidiScreen extends Screen {
     private static final int ROW_HEIGHT    = 14;
 
     private final Screen parent;
-    private List<MidiDevice.Info> devices;
+    private volatile List<MidiDevice.Info> devices = java.util.Collections.emptyList();
     private int listX, listY, listW, listH;
     private int rowYEnable;
 
-    private String flashMessage = null;
-    private long flashUntil = 0;
-    private boolean flashSuccess = true;
+    private volatile String flashMessage = null;
+    private volatile long flashUntil = 0;
+    private volatile boolean flashSuccess = true;
+
+    /** v4.0.1: 비동기 작업 중 (true) 일 때 추가 클릭 차단. */
+    private final AtomicBoolean busy = new AtomicBoolean(false);
+    private volatile String busyMessage = null;
 
     public MusixMidiScreen(Screen parent) {
         super(Text.literal("Musix MIDI 입력"));
@@ -47,7 +53,8 @@ public class MusixMidiScreen extends Screen {
 
     @Override
     protected void init() {
-        devices = MusixMidi.scanInputDevices();
+        // 초기 장치 스캔도 비동기 — 화면 열 때 hang 방지
+        scanAsync();
 
         int by = this.height - 28;
         int btnW = 110, gap = 6;
@@ -55,7 +62,7 @@ public class MusixMidiScreen extends Screen {
         int startX = (this.width - totalW) / 2;
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("새로고침"),
-                btn -> { devices = MusixMidi.scanInputDevices(); flash("✓ 장치 다시 검색", true); }
+                btn -> scanAsync()
         ).dimensions(startX, by, btnW, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("← 고급 설정으로"),
@@ -65,6 +72,78 @@ public class MusixMidiScreen extends Screen {
         this.addDrawableChild(ButtonWidget.builder(Text.literal("닫기"),
                 btn -> this.close()
         ).dimensions(startX + (btnW + gap) * 2, by, btnW, 20).build());
+    }
+
+    /** v4.0.1: 별도 스레드에서 MIDI 장치 스캔. 결과는 메인 스레드에서 반영. */
+    private void scanAsync() {
+        if (!busy.compareAndSet(false, true)) return;
+        busyMessage = "장치 검색 중...";
+        new Thread(() -> {
+            try {
+                List<MidiDevice.Info> found = MusixMidi.scanInputDevices();
+                MinecraftClient.getInstance().execute(() -> {
+                    devices = found;
+                    busy.set(false);
+                    busyMessage = null;
+                    flash("✓ 장치 검색 완료 (" + found.size() + "개)", true);
+                });
+            } catch (Throwable t) {
+                MinecraftClient.getInstance().execute(() -> {
+                    busy.set(false);
+                    busyMessage = null;
+                    flash("✗ 검색 실패: " + t.getMessage(), false);
+                });
+            }
+        }, "musix-midi-scan").start();
+    }
+
+    /** v4.0.1: 별도 스레드에서 MIDI 연결. 메인 스레드 차단 방지. */
+    private void connectAsync(MidiDevice.Info info) {
+        if (!busy.compareAndSet(false, true)) {
+            flash("⏳ 작업 중 — 잠시 후 다시 시도", false);
+            return;
+        }
+        busyMessage = "연결 중: " + info.getName();
+        new Thread(() -> {
+            boolean ok;
+            try {
+                ok = MusixMidi.connect(info.getName());
+            } catch (Throwable t) {
+                ok = false;
+            }
+            final boolean okFinal = ok;
+            MinecraftClient.getInstance().execute(() -> {
+                busy.set(false);
+                busyMessage = null;
+                if (okFinal) {
+                    MusixClient.config().setMidiDeviceName(info.getName());
+                    if (!MusixClient.config().midiEnabled) {
+                        MusixClient.config().setMidiEnabled(true);
+                    }
+                    flash("✓ 연결: " + info.getName(), true);
+                } else {
+                    flash("✗ 연결 실패: " + info.getName(), false);
+                }
+            });
+        }, "musix-midi-connect").start();
+    }
+
+    /** v4.0.1: 별도 스레드에서 MIDI 연결 해제. */
+    private void disconnectAsync() {
+        if (!busy.compareAndSet(false, true)) {
+            flash("⏳ 작업 중 — 잠시 후 다시 시도", false);
+            return;
+        }
+        busyMessage = "연결 해제 중...";
+        new Thread(() -> {
+            try { MusixMidi.disconnect(); } catch (Throwable ignored) {}
+            MinecraftClient.getInstance().execute(() -> {
+                busy.set(false);
+                busyMessage = null;
+                MusixClient.config().setMidiDeviceName("");
+                flash("✓ 연결 해제", true);
+            });
+        }, "musix-midi-disconnect").start();
     }
 
     private void flash(String msg, boolean ok) {
@@ -156,7 +235,11 @@ public class MusixMidiScreen extends Screen {
             }
         }
 
-        if (flashMessage != null && System.currentTimeMillis() < flashUntil) {
+        // 비동기 작업 진행 중 표시 (busy 우선)
+        if (busy.get() && busyMessage != null) {
+            context.drawCenteredTextWithShadow(tr, "⏳ " + busyMessage, cx, this.height - 42,
+                    0xFFFFFF55);
+        } else if (flashMessage != null && System.currentTimeMillis() < flashUntil) {
             context.drawCenteredTextWithShadow(tr, flashMessage, cx, this.height - 42,
                     flashSuccess ? COLOR_OK : COLOR_WARN);
         }
@@ -170,8 +253,13 @@ public class MusixMidiScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
         if (button != 0) return false;
+        // 비동기 작업 진행 중에는 추가 클릭 거부 (중복 연결 시도 방지)
+        if (busy.get()) {
+            flash("⏳ 작업 중 — 잠시 기다려 주세요", false);
+            return true;
+        }
 
-        // 활성화 토글
+        // 활성화 토글 (DB 만 쓰는 동기 작업이라 그대로 OK)
         if (mouseY >= rowYEnable && mouseY < rowYEnable + 11
                 && mouseX >= 40 && mouseX < this.width - 40) {
             MusixConfig cfg = MusixClient.config();
@@ -180,7 +268,7 @@ public class MusixMidiScreen extends Screen {
             return true;
         }
 
-        // 장치 목록 클릭
+        // 장치 목록 클릭 → 비동기 connect/disconnect
         int dy = listY + 22;
         for (int i = 0; i < devices.size(); i++) {
             MidiDevice.Info info = devices.get(i);
@@ -191,20 +279,9 @@ public class MusixMidiScreen extends Screen {
             boolean isConn = MusixMidi.isConnected()
                     && info.getName().equals(MusixMidi.connectedDeviceName());
             if (isConn) {
-                MusixMidi.disconnect();
-                MusixClient.config().setMidiDeviceName("");
-                flash("✓ 연결 해제", true);
+                disconnectAsync();
             } else {
-                boolean ok = MusixMidi.connect(info.getName());
-                if (ok) {
-                    MusixClient.config().setMidiDeviceName(info.getName());
-                    if (!MusixClient.config().midiEnabled) {
-                        MusixClient.config().setMidiEnabled(true);
-                    }
-                    flash("✓ 연결: " + info.getName(), true);
-                } else {
-                    flash("✗ 연결 실패: " + info.getName(), false);
-                }
+                connectAsync(info);
             }
             return true;
         }
