@@ -18,6 +18,13 @@ public class MusixClient implements ClientModInitializer {
         return config;
     }
 
+    /** v3.10.0: DB 가 외부에서 변경된 후 (예: 슬롯 불러오기) 메모리 캐시 재로드. */
+    public static void reloadConfig() {
+        config = MusixConfig.load();
+        KeyBindings.register(config);
+        LOG.info("[Musix] 설정 재로드 완료");
+    }
+
     public static String version() {
         return FabricLoader.getInstance().getModContainer(MOD_ID)
                 .map(c -> c.getMetadata().getVersion().getFriendlyString())

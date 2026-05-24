@@ -5,9 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * v3.1.0: 18 preset (common + drum + 16 악기). 각 preset 마다 독립 매핑.
@@ -16,6 +18,12 @@ import java.util.Map;
 public class MusixConfig {
     public static final String PRESET_COMMON = "common";
     public static final String PRESET_DRUM   = "drum";
+
+    /**
+     * v3.9.0: 자동 매핑/dump 에서 항상 제외하는 슬롯.
+     * PlanetEarth 서버 GUI 의 네비게이션/장식 슬롯이라 음표로 잘못 매칭되면 안 됨.
+     */
+    public static final Set<Integer> BLOCKED_SLOTS = Set.of(6, 19, 32, 45, 53);
 
     /** 전체 preset 순서. v3.2.0: 단순화 — drum 과 그 외 (common). */
     public static final List<String> ALL_PRESETS = new ArrayList<>();
@@ -77,28 +85,33 @@ public class MusixConfig {
                 {"A5",   39, "key.keyboard.b"},
                 {"A#5",  40, "key.keyboard.n"},
                 {"B5",   41, "key.keyboard.m"},
-                // 옥타브 6 (7): C6~F#6 — 키 , . / + 4음 미설정
+                // 옥타브 6 (7): C6~F#6 — 키 , . / \ + 3음 미설정
+                // v3.7.1: D#6 기본 키 \ (backslash) 추가
                 {"C6",   42, "key.keyboard.comma"},
                 {"C#6",  43, "key.keyboard.period"},
                 {"D6",   44, "key.keyboard.slash"},
-                {"D#6",  45, ""},
+                {"D#6",  45, "key.keyboard.backslash"},
                 {"E6",   46, ""},
                 {"F6",   47, ""},
                 {"F#6",  48, ""},
         };
         DEFAULT_PRESETS.put(PRESET_COMMON, common49);
 
-        // 드럼 9음 — 사용자 서버 실제 슬롯 (행1 11/13/15, 행2 20/22/24, 행3 29/31/33)
+        // 드럼 12음 (v3.9.0): 4행 분포. 슬롯은 자동 매핑이 갱신하므로 초기값은 근사.
+        // 차단 슬롯 19/32/45/53 을 피하도록 음표 3개를 행 내 인접 위치로 둠.
         DEFAULT_PRESETS.put(PRESET_DRUM, new Object[][] {
                 {"베이스-상", 11, "key.keyboard.1"},
-                {"베이스-중", 13, "key.keyboard.2"},
-                {"베이스-하", 15, "key.keyboard.3"},
+                {"베이스-중", 12, "key.keyboard.2"},
+                {"베이스-하", 13, "key.keyboard.3"},
                 {"하이햇-상", 20, "key.keyboard.q"},
-                {"하이햇-중", 22, "key.keyboard.w"},
-                {"하이햇-하", 24, "key.keyboard.e"},
+                {"하이햇-중", 21, "key.keyboard.w"},
+                {"하이햇-하", 22, "key.keyboard.e"},
                 {"스네어-상", 29, "key.keyboard.a"},
-                {"스네어-중", 31, "key.keyboard.s"},
-                {"스네어-하", 33, "key.keyboard.d"},
+                {"스네어-중", 30, "key.keyboard.s"},
+                {"스네어-하", 31, "key.keyboard.d"},
+                {"심벌-상", 47, "key.keyboard.z"},
+                {"심벌-중", 48, "key.keyboard.x"},
+                {"심벌-하", 49, "key.keyboard.c"},
         });
     }
 
@@ -106,6 +119,8 @@ public class MusixConfig {
     public int clickButton;
     public String clickAction;
     public boolean debugMode;
+    /** v3.8.0: 음악/악기 상자가 열릴 때 슬롯 아이템 이름으로 자동 매핑할지 여부. */
+    public boolean autoMapOnOpen;
     /** preset 이름 → 사용자가 정한 표시 이름 (메뉴 표시용). 없으면 preset 이름 그대로. */
     public Map<String, String> presetDisplayNames = new LinkedHashMap<>();
     /** preset 이름 → 매칭할 상자 제목 부분 문자열 (예: "하프"). 매칭되면 그 preset 활성. */
@@ -117,6 +132,7 @@ public class MusixConfig {
         if (db.mappingCount() == 0) {
             seedAllPresets(db);
         } else {
+            migrateLegacyNoteNames(db); // v3.9.1: 옛 placeholder 이름 정리
             for (String p : ALL_PRESETS) ensurePresetExists(db, p);
         }
 
@@ -125,6 +141,7 @@ public class MusixConfig {
         config.clickButton     = parseInt(db.getSetting("clickButton", "0"), 0);
         config.clickAction     = db.getSetting("clickAction", "PICKUP");
         config.debugMode       = "true".equalsIgnoreCase(db.getSetting("debugMode", "false"));
+        config.autoMapOnOpen   = "true".equalsIgnoreCase(db.getSetting("autoMapOnOpen", "true"));
 
         for (String preset : ALL_PRESETS) {
             List<KeyMapping> list = new ArrayList<>();
@@ -193,6 +210,10 @@ public class MusixConfig {
         this.debugMode = enabled;
         MusixDatabase.get().setSetting("debugMode", Boolean.toString(enabled));
     }
+    public void setAutoMapOnOpen(boolean enabled) {
+        this.autoMapOnOpen = enabled;
+        MusixDatabase.get().setSetting("autoMapOnOpen", Boolean.toString(enabled));
+    }
     public void setPresetDisplayName(String preset, String name) {
         this.presetDisplayNames.put(preset, name);
         MusixDatabase.get().setSetting("presetName." + preset, name);
@@ -239,6 +260,17 @@ public class MusixConfig {
         };
     }
 
+    /**
+     * 옛 placeholder 음 이름을 정식 이름으로 변경. 항목별로 안전하게 UPDATE.
+     * v3.10.1: 사용자 정정 — 정식 이름은 "심벌-*". v3.9.1/v3.10.0 의 "크래시-*" 를 되돌림.
+     */
+    private static void migrateLegacyNoteNames(MusixDatabase db) {
+        // v3.9.1/v3.10.0 잠시 "크래시-*" 로 저장되었던 음들을 정식 이름 "심벌-*" 로 복원.
+        db.renameNote(PRESET_DRUM, "크래시-상", "심벌-상");
+        db.renameNote(PRESET_DRUM, "크래시-중", "심벌-중");
+        db.renameNote(PRESET_DRUM, "크래시-하", "심벌-하");
+    }
+
     private static void seedAllPresets(MusixDatabase db) {
         db.setSetting("containerPrefix", "음악,악기");
         db.setSetting("clickButton", "0");
@@ -251,13 +283,24 @@ public class MusixConfig {
         LOG.info("[Musix] DB 기본값 시드: 18 preset");
     }
 
+    /**
+     * v3.9.0: 음 단위로 체크 → 기존 사용자가 옛 버전 음 개수로 저장된 상태에서
+     * 신규 추가된 음(예: 드럼 심벌 3음)만 골라서 추가. 기존 슬롯/키 매핑은 보존.
+     */
     private static void ensurePresetExists(MusixDatabase db, String preset) {
-        if (db.mappingCountFor(preset) > 0) return;
         Object[][] table = DEFAULT_PRESETS.get(preset);
         if (table == null) return;
-        for (Object[] d : table) {
-            db.upsertMapping(preset, (int) d[1], (String) d[0], (String) d[2], 0);
+        Set<String> existingNotes = new HashSet<>();
+        for (MusixDatabase.MappingRow r : db.getAllMappings(preset)) {
+            existingNotes.add(r.note());
         }
-        LOG.info("[Musix] preset '{}' 보충 ({}음)", preset, table.length);
+        int added = 0;
+        for (Object[] d : table) {
+            String note = (String) d[0];
+            if (existingNotes.contains(note)) continue;
+            db.upsertMapping(preset, (int) d[1], note, (String) d[2], 0);
+            added++;
+        }
+        if (added > 0) LOG.info("[Musix] preset '{}' 신규 {}음 추가 (총 {}음 default)", preset, added, table.length);
     }
 }

@@ -19,7 +19,9 @@ import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class KeyHandler {
     private KeyHandler() {}
@@ -79,6 +81,10 @@ public final class KeyHandler {
             if (note.matches(key, scancode, modifiers)) {
                 int slot = note.mapping().slot;
                 if (slot < 0 || slot >= slotsCount) return true;
+                if (MusixConfig.BLOCKED_SLOTS.contains(slot)) {
+                    if (cfg.debugMode) DebugChat.warn("[KeyHandler] 차단 슬롯 " + slot + " — 클릭 건너뜀");
+                    return true;
+                }
                 ItemStack stack = handler.slots.get(slot).getStack();
                 client.interactionManager.clickSlot(syncId, slot, cfg.clickButton,
                         parseAction(cfg.clickAction), client.player);
@@ -103,10 +109,25 @@ public final class KeyHandler {
         int containerSize = containerRows * 9;
 
         List<Integer> nonEmpty = new ArrayList<>();
+        Map<Integer, String> itemNames = new LinkedHashMap<>();
         for (int i = 0; i < containerSize && i < handler.slots.size(); i++) {
-            if (!handler.slots.get(i).getStack().isEmpty()) nonEmpty.add(i);
+            if (MusixConfig.BLOCKED_SLOTS.contains(i)) continue; // v3.9.0: 네비/장식 슬롯 무시
+            ItemStack stack = handler.slots.get(i).getStack();
+            if (!stack.isEmpty()) {
+                nonEmpty.add(i);
+                itemNames.put(i, stack.getName().getString());
+            }
         }
-        LastSeenContainer.update(title.getString(), containerRows, nonEmpty);
+        LastSeenContainer.update(title.getString(), containerRows, nonEmpty, itemNames);
+
+        // v3.8.0: 상자 열릴 때 아이템 이름 기반 자동 매핑 (옵션, 기본 ON)
+        if (cfg.autoMapOnOpen && !itemNames.isEmpty()) {
+            KeyBindings.AutoMapResult r = KeyBindings.autoMapFromItemNames();
+            if (cfg.debugMode) {
+                if (r.success()) DebugChat.ok("[자동매핑] " + r.message());
+                else             DebugChat.warn("[자동매핑] " + r.message());
+            }
+        }
 
         if (!cfg.debugMode) return;
         String preset = cfg.activePresetForTitle(title.getString());

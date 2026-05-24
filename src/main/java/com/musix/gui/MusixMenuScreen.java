@@ -228,8 +228,13 @@ public class MusixMenuScreen extends Screen {
                 } else if ((rowIndex & 1) == 1) {
                     context.fill(listX + 1, rowY - 1, listX + listW - 1, rowY + ROW_HEIGHT - 1, COLOR_ROW_ALT);
                 }
-                int noteColor = (conflictActive && rowIndex == conflictIndex) ? COLOR_WARN : COLOR_VALUE;
-                context.drawTextWithShadow(tr, note.mapping().note,       colNote, rowY, noteColor);
+                String noteName = note.mapping().note;
+                boolean isSharp = noteName != null && noteName.contains("#");
+                int noteColor;
+                if (conflictActive && rowIndex == conflictIndex) noteColor = COLOR_WARN;
+                else if (isSharp) noteColor = COLOR_VERSION; // 반음: 회색
+                else              noteColor = COLOR_VALUE;   // 본음: 흰색
+                context.drawTextWithShadow(tr, noteName, colNote, rowY, noteColor);
                 context.drawTextWithShadow(tr, "#" + note.mapping().slot, colSlot, rowY, COLOR_VERSION);
                 if (rowIndex == awaitingIndex) {
                     context.drawTextWithShadow(tr, "▶ 키 입력 (Shift/Alt 조합 가능, ESC=기본값)",
@@ -309,7 +314,12 @@ public class MusixMenuScreen extends Screen {
         }
         // 디버그 라인은 고급 설정 화면에서만
         if (mouseY >= rowYAutoMap && mouseY < rowYAutoMap + ROW_HEIGHT) {
-            KeyBindings.AutoMapResult result = KeyBindings.autoMapFromLastContainer();
+            // v3.8.0: 이름 기반 매핑 먼저 시도, 0매칭이면 인덱스 기반으로 폴백.
+            KeyBindings.AutoMapResult result = KeyBindings.autoMapFromItemNames();
+            if (!result.success()) {
+                KeyBindings.AutoMapResult fallback = KeyBindings.autoMapFromLastContainer();
+                if (fallback.success()) result = fallback;
+            }
             autoMapMessage = result.message();
             autoMapSuccess = result.success();
             autoMapUntil = System.currentTimeMillis() + 4000L;

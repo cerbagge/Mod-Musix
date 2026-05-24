@@ -43,13 +43,19 @@ A client-side Fabric mod that lets you play PlanetEarth's chest-GUI based instru
 | Q row | `Q W E R T Y U I O P [ ]` | F#3 → F4 |
 | A row | `A S D F G H J K L ; '` | F#4 → E5 |
 | Z row | `Z X C V B N M , . /` | F5 → D6 |
-| unbound | — | D#6, E6, F6, F#6 (set yourself in the menu) |
+| extra | `\` | D#6 |
+| unbound | — | E6, F6, F#6 (set yourself in the menu) |
 
 ## Drum preset (auto when title contains `(드럼)`)
 
-- `1 2 3` → bass low / mid / high (slots 11 / 13 / 15)
-- `Q W E` → hi-hat (slots 20 / 22 / 24)
-- `A S D` → snare (slots 29 / 31 / 33)
+12 notes across 4 rows. Slots auto-aligned on chest open (item-name matching).
+
+- `1 2 3` → bass high / mid / low
+- `Q W E` → hi-hat high / mid / low
+- `A S D` → snare high / mid / low
+- `Z X C` → cymbal high / mid / low
+
+Blocked slots (never mapped): `6, 19, 32, 45, 53` — server GUI navigation slots.
 
 ## Build
 

@@ -14,9 +14,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class KeyBindings {
     public static final String CATEGORY = "key.categories.musix";
@@ -59,6 +61,8 @@ public final class KeyBindings {
 
         public String displayKey() {
             String base = key == null ? "?" : key.getLocalizedText().getString();
+            // v3.7.1: Left/Right Shift, Alt, Ctrl 표기 통합 — 좌/우 구분 없이 한 이름으로.
+            base = normalizeLeftRightLabel(base);
             if (mapping.modifiers == 0) return base;
             StringBuilder sb = new StringBuilder();
             if ((mapping.modifiers & GLFW.GLFW_MOD_CONTROL) != 0) sb.append("Ctrl+");
@@ -67,19 +71,43 @@ public final class KeyBindings {
             return sb + base;
         }
 
+        /** "Left Shift"/"Right Shift"/"왼쪽 Shift"/"오른쪽 Shift" 등을 단일 "Shift" 표기로 정규화. */
+        private static String normalizeLeftRightLabel(String label) {
+            if (label == null) return "?";
+            String lower = label.toLowerCase();
+            if (lower.contains("shift")) return "Shift";
+            if (lower.contains("control") || lower.contains("ctrl")) return "Ctrl";
+            if (lower.contains("alt"))   return "Alt";
+            return label;
+        }
+
         /** modifier 비교 포함 매칭. currentMods 는 GLFW.glfwGetKey 콜백의 mods 인자. */
         public boolean matches(int keyCode, int scanCode, int currentMods) {
             if (isUnbound()) return false;
             InputUtil.Type type = key.getCategory();
             boolean keyOk;
             if (type == InputUtil.Type.KEYSYM) {
-                keyOk = keyCode != GLFW.GLFW_KEY_UNKNOWN && key.getCode() == keyCode;
+                keyOk = keyCode != GLFW.GLFW_KEY_UNKNOWN
+                        && equalKeyCode(key.getCode(), keyCode);
             } else if (type == InputUtil.Type.SCANCODE) {
                 keyOk = keyCode == GLFW.GLFW_KEY_UNKNOWN && key.getCode() == scanCode;
             } else return false;
             if (!keyOk) return false;
             int relevant = currentMods & MOD_MASK;
             return relevant == this.mapping.modifiers;
+        }
+
+        /** v3.7.1: Left/Right Shift, Alt, Ctrl 을 같은 키로 취급. */
+        private static boolean equalKeyCode(int a, int b) {
+            if (a == b) return true;
+            return canonicalModifierKey(a) == canonicalModifierKey(b);
+        }
+
+        private static int canonicalModifierKey(int code) {
+            if (code == GLFW.GLFW_KEY_RIGHT_SHIFT)   return GLFW.GLFW_KEY_LEFT_SHIFT;
+            if (code == GLFW.GLFW_KEY_RIGHT_CONTROL) return GLFW.GLFW_KEY_LEFT_CONTROL;
+            if (code == GLFW.GLFW_KEY_RIGHT_ALT)     return GLFW.GLFW_KEY_LEFT_ALT;
+            return code;
         }
     }
 
@@ -159,9 +187,10 @@ public final class KeyBindings {
         LOG.info("[Musix] preset '{}' 키 기본값 복원", preset);
     }
 
-    /** LastSeenContainer 캐시 슬롯으로 활성 preset 의 슬롯 매핑 자동 갱신. */
+    /** LastSeenContainer 캐시 슬롯으로 활성 preset 의 슬롯 매핑 자동 갱신. 차단 슬롯 제외. */
     public static AutoMapResult autoMapFromLastContainer() {
         List<Integer> slots = LastSeenContainer.nonEmptySlots();
+        slots.removeIf(MusixConfig.BLOCKED_SLOTS::contains); // v3.9.0: 차단 슬롯 안전망
         String preset = activePresetName();
         List<NoteEntry> notes = NOTES_BY_PRESET.get(preset);
         if (notes == null) return new AutoMapResult(false, "preset '" + preset + "' 없음");
@@ -183,6 +212,80 @@ public final class KeyBindings {
         MusixDatabase.get().replaceMappings(preset, rows);
         LOG.info("[Musix] '{}' 자동 매핑 완료 ({}음)", preset, needed);
         return new AutoMapResult(true, "'" + preset + "' " + needed + "음 자동 매핑");
+    }
+
+    /**
+     * v3.8.0: 슬롯 아이템 이름으로 자동 매핑.
+     * - LastSeenContainer 의 slot→itemName 매핑을 이용.
+     * - 활성 preset 의 각 NoteEntry 에 대해 mapping.note 와 일치하는 아이템 이름을 가진 슬롯을 찾아 할당.
+     * - 매칭 실패한 음은 기존 슬롯 유지 (덮어쓰지 않음).
+     * - 같은 슬롯이 두 음에 동시 매칭되지 않도록 사용된 슬롯은 제외.
+     */
+    public static AutoMapResult autoMapFromItemNames() {
+        Map<Integer, String> names = LastSeenContainer.itemNames();
+        String preset = activePresetName();
+        List<NoteEntry> notes = NOTES_BY_PRESET.get(preset);
+        if (notes == null) return new AutoMapResult(false, "preset '" + preset + "' 없음");
+        if (names.isEmpty()) return new AutoMapResult(false, "캐시된 상자 아이템 없음");
+
+        Set<Integer> usedSlots = new HashSet<>();
+        int matched = 0;
+        List<MusixDatabase.MappingRow> rows = new ArrayList<>();
+        for (NoteEntry note : notes) {
+            String noteName = note.mapping().note;
+            Integer found = findSlotByItemName(names, noteName, usedSlots);
+            if (found != null) {
+                note.mapping().slot = found;
+                usedSlots.add(found);
+                matched++;
+            }
+            rows.add(new MusixDatabase.MappingRow(
+                    note.mapping().slot,
+                    note.mapping().note,
+                    note.mapping().defaultKey == null ? "" : note.mapping().defaultKey,
+                    note.mapping().modifiers));
+        }
+        MusixDatabase.get().replaceMappings(preset, rows);
+        LOG.info("[Musix] 이름 기반 자동 매핑: '{}' {}/{} 매칭", preset, matched, notes.size());
+        return new AutoMapResult(matched > 0,
+                "'" + preset + "' 이름 매칭: " + matched + "/" + notes.size());
+    }
+
+    /** noteName 과 가장 잘 맞는 슬롯 인덱스 검색. 정확 일치 우선, 없으면 부분 일치. 차단 슬롯 제외. */
+    private static Integer findSlotByItemName(Map<Integer, String> names, String noteName, Set<Integer> exclude) {
+        if (noteName == null || noteName.isEmpty()) return null;
+        String target = normalizeName(noteName);
+        if (target.isEmpty()) return null;
+
+        // 1순위: 정규화 후 완전 일치
+        for (Map.Entry<Integer, String> e : names.entrySet()) {
+            if (exclude.contains(e.getKey())) continue;
+            if (MusixConfig.BLOCKED_SLOTS.contains(e.getKey())) continue;
+            if (target.equals(normalizeName(e.getValue()))) return e.getKey();
+        }
+        // 2순위: 아이템 이름 안에 target 이 포함 (예: "음악-하프 - F#2")
+        for (Map.Entry<Integer, String> e : names.entrySet()) {
+            if (exclude.contains(e.getKey())) continue;
+            if (MusixConfig.BLOCKED_SLOTS.contains(e.getKey())) continue;
+            String n = normalizeName(e.getValue());
+            if (n.contains(target)) return e.getKey();
+        }
+        // 3순위: target 안에 아이템 이름이 포함 (역방향, 드물지만 안전)
+        for (Map.Entry<Integer, String> e : names.entrySet()) {
+            if (exclude.contains(e.getKey())) continue;
+            if (MusixConfig.BLOCKED_SLOTS.contains(e.getKey())) continue;
+            String n = normalizeName(e.getValue());
+            if (!n.isEmpty() && target.contains(n)) return e.getKey();
+        }
+        return null;
+    }
+
+    /** 공백 제거 + 대문자 통일 + 마인크래프트 §형식코드 제거. */
+    private static String normalizeName(String s) {
+        if (s == null) return "";
+        // §0~§r 등 색상/포맷 코드 제거
+        String stripped = s.replaceAll("§[0-9A-FK-ORa-fk-or]", "");
+        return stripped.trim().toUpperCase().replaceAll("\\s+", "");
     }
 
     public record AutoMapResult(boolean success, String message) {}
