@@ -31,7 +31,7 @@ A client-side Fabric mod that lets you play PlanetEarth's chest-GUI based instru
 1. Install the jar in your `mods/` folder (Fabric 1.20.1 + Fabric API required)
 2. Join **PlanetEarth Server** (`planetearth.kr`)
 3. Open a music chest (e.g. `음악-하프`) — the mod silently caches its slot layout
-4. Press **M**, click **Auto-map** in the menu → slots align to that chest
+4. Press **\\** (backslash, the default menu key), click **Auto-map** in the menu → slots align to that chest
 5. Reopen the chest and press the mapped keys to play notes
 6. Switching instruments? Auto-map again on the new chest
 

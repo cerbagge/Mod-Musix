@@ -161,10 +161,11 @@ public final class KeyBindings {
      */
     public static void register(MusixConfig config) {
         if (!keyBindingRegistered) {
+            // v4.1.3: 메뉴 열기 기본 키 M → \ (backslash)
             menuBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                     "key.musix.open_menu",
                     InputUtil.Type.KEYSYM,
-                    GLFW.GLFW_KEY_M,
+                    GLFW.GLFW_KEY_BACKSLASH,
                     CATEGORY
             ));
             keyBindingRegistered = true;
