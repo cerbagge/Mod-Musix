@@ -21,12 +21,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(HandledScreen.class)
 public class HandledScreenMixin {
 
-    /** v4.0.3: 키 떼면 자동반복 추적 상태 reset → 다음 누름 다시 처리 가능. */
-    @Inject(method = "keyReleased", at = @At("HEAD"))
-    private void musix$preKeyReleased(int keyCode, int scanCode, int modifiers,
-                                      CallbackInfoReturnable<Boolean> cir) {
-        KeyBindings.releaseKey(keyCode);
-    }
+    // v4.1.1: HandledScreen 에 keyReleased 가 override 되어있지 않아 Mixin inject 실패 → 크래시.
+    // ScreenKeyboardEvents.allowKeyRelease (KeyHandler.registerEvents 에 등록) 만 사용.
+    // 키 자동반복 reset 은 거기서 처리됨.
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void musix$preKeyPressed(int keyCode, int scanCode, int modifiers,
