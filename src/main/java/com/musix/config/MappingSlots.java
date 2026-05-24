@@ -181,6 +181,7 @@ public final class MappingSlots {
         root.addProperty("name", name);
         root.addProperty("modVersion", MusixClient.version());
         root.addProperty("savedAt", LocalDateTime.now().toString());
+        root.addProperty("savedOS", MusixClient.osName()); // v3.10.4: OS 정보
         root.addProperty("containerPrefix", cfg.containerPrefix);
         root.addProperty("clickButton", cfg.clickButton);
         root.addProperty("clickAction", cfg.clickAction);

@@ -28,6 +28,8 @@ public final class KeyBindings {
     private static final Logger LOG = LoggerFactory.getLogger("musix/keys");
     private static final Map<String, List<NoteEntry>> NOTES_BY_PRESET = new LinkedHashMap<>();
     private static KeyBinding menuBinding;
+    /** v3.10.4: KeyBindingHelper.registerKeyBinding 은 init 시점에 1회만 호출 가능. */
+    private static boolean keyBindingRegistered = false;
 
     private KeyBindings() {}
 
@@ -111,13 +113,20 @@ public final class KeyBindings {
         }
     }
 
+    /**
+     * v3.10.4: KeyBindingHelper 는 init 시점 1회만, NOTES_BY_PRESET 은 매번 갱신.
+     * 매핑 슬롯 불러오기 같은 런타임 재로드에서도 안전.
+     */
     public static void register(MusixConfig config) {
-        menuBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.musix.open_menu",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_M,
-                CATEGORY
-        ));
+        if (!keyBindingRegistered) {
+            menuBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                    "key.musix.open_menu",
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_M,
+                    CATEGORY
+            ));
+            keyBindingRegistered = true;
+        }
 
         NOTES_BY_PRESET.clear();
         for (Map.Entry<String, List<KeyMapping>> e : config.presets.entrySet()) {
@@ -127,7 +136,8 @@ public final class KeyBindings {
             }
             NOTES_BY_PRESET.put(e.getKey(), list);
         }
-        LOG.info("[Musix] {} preset 등록", NOTES_BY_PRESET.size());
+        LOG.info("[Musix] {} preset 등록 (keyBinding={})",
+                NOTES_BY_PRESET.size(), keyBindingRegistered ? "기존" : "신규");
     }
 
     private static InputUtil.Key parseKey(String name) {

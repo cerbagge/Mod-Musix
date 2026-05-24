@@ -5,6 +5,7 @@ import com.musix.key.KeyBindings;
 import com.musix.key.KeyHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,9 +22,16 @@ public class MusixClient implements ClientModInitializer {
     /** v3.10.0: DB 가 외부에서 변경된 후 (예: 슬롯 불러오기) 메모리 캐시 재로드. */
     public static void reloadConfig() {
         config = MusixConfig.load();
-        KeyBindings.register(config);
+        KeyBindings.register(config); // v3.10.4: 내부에서 keyBinding 재등록 가드
         LOG.info("[Musix] 설정 재로드 완료");
     }
+
+    // === v3.10.4: OS 감지 ===
+    public static boolean isMacOS()   { return Util.getOperatingSystem() == Util.OperatingSystem.OSX; }
+    public static boolean isWindows() { return Util.getOperatingSystem() == Util.OperatingSystem.WINDOWS; }
+    public static boolean isLinux()   { return Util.getOperatingSystem() == Util.OperatingSystem.LINUX; }
+    /** "WINDOWS" / "OSX" / "LINUX" / "SOLARIS" / "UNKNOWN" */
+    public static String osName()     { return Util.getOperatingSystem().name(); }
 
     public static String version() {
         return FabricLoader.getInstance().getModContainer(MOD_ID)
