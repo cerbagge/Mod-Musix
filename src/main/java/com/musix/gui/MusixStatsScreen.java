@@ -220,15 +220,25 @@ public class MusixStatsScreen extends Screen {
         }
         int maxV = top.get(0).getValue();
         int rowH = 12, ty = y + 18;
-        int barX = x + 70;
-        int barMaxW = w - 78;
+
+        // v4.1.2: 박스 안에 모두 들어가도록 영역 분할
+        int labelW = 60;                              // 음 이름 영역
+        int valueColW = 28;                           // 우측 숫자 영역 (최대 4자리 + 여백)
+        int barX = x + labelW + 6;                    // 막대 시작
+        int barEndX = x + w - valueColW - 6;          // 막대 끝 (숫자 영역 앞에서 멈춤)
+        int barMaxW = Math.max(1, barEndX - barX);
+
         for (Map.Entry<String, Integer> e : top) {
             String name = e.getKey();
             int v = e.getValue();
             int barW = Math.max(1, (barMaxW * v) / maxV);
-            ctx.drawTextWithShadow(tr, ellipsize(name, 60, tr), x + 6, ty, COLOR_VALUE);
+            ctx.drawTextWithShadow(tr, ellipsize(name, labelW - 4, tr), x + 6, ty, COLOR_VALUE);
             ctx.fill(barX, ty - 1, barX + barW, ty + 8, COLOR_CHART_LINE);
-            ctx.drawTextWithShadow(tr, String.valueOf(v), barX + barW + 4, ty, COLOR_OK);
+            // 숫자는 박스 우측에 우측-정렬 (박스 밖으로 안 나감)
+            String vs = String.valueOf(v);
+            int vw = tr.getWidth(vs);
+            int vx = x + w - 6 - vw;
+            ctx.drawTextWithShadow(tr, vs, vx, ty, COLOR_OK);
             ty += rowH;
         }
     }
@@ -250,23 +260,29 @@ public class MusixStatsScreen extends Screen {
         double pCommon = 100.0 * common / total;
         double pDrum = 100.0 * drum / total;
 
+        // v4.1.2: 박스 안에 모두 들어가도록 영역 분할
         int ty = y + 18, rowH = 14;
-        int barX = x + 60;
-        int barMaxW = w - 100;
+        int labelW = 50;                              // "common" / "drum" 영역
+        int valueColW = 70;                           // "100% (12345)" 까지 안전한 폭
+        int barX = x + labelW + 6;
+        int barEndX = x + w - valueColW - 6;
+        int barMaxW = Math.max(1, barEndX - barX);
 
         // Common
         ctx.drawTextWithShadow(tr, "common", x + 6, ty, COLOR_LABEL);
         int cW = (int) (barMaxW * common / (double) total);
         ctx.fill(barX, ty - 1, barX + cW, ty + 8, COLOR_BAR_COMMON);
-        ctx.drawTextWithShadow(tr, String.format("%.0f%% (%d)", pCommon, common),
-                barX + barMaxW + 4, ty, COLOR_VALUE);
+        String cTxt = String.format("%.0f%% (%d)", pCommon, common);
+        int cTw = tr.getWidth(cTxt);
+        ctx.drawTextWithShadow(tr, cTxt, x + w - 6 - cTw, ty, COLOR_VALUE);
         ty += rowH;
         // Drum
         ctx.drawTextWithShadow(tr, "drum", x + 6, ty, COLOR_LABEL);
         int dW = (int) (barMaxW * drum / (double) total);
         ctx.fill(barX, ty - 1, barX + dW, ty + 8, COLOR_BAR_DRUM);
-        ctx.drawTextWithShadow(tr, String.format("%.0f%% (%d)", pDrum, drum),
-                barX + barMaxW + 4, ty, COLOR_VALUE);
+        String dTxt = String.format("%.0f%% (%d)", pDrum, drum);
+        int dTw = tr.getWidth(dTxt);
+        ctx.drawTextWithShadow(tr, dTxt, x + w - 6 - dTw, ty, COLOR_VALUE);
         ty += rowH + 6;
 
         // 합계
