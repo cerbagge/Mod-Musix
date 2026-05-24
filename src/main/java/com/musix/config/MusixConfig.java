@@ -39,62 +39,63 @@ public class MusixConfig {
     private static final Map<String, Object[][]> DEFAULT_PRESETS = new LinkedHashMap<>();
 
     static {
+        // v3.11.0: common 49음 — 사용자 export 패턴 (Shift 활용으로 키 절약)
+        // {note, slot, key, modifiers}  - modifiers=1 → Shift 조합
         Object[][] common49 = new Object[][] {
-                // 옥타브 2 (6): F#2 G2 G#2 A2 A#2 B2 — 키 1 2 3 4 5 6
-                {"F#2",   0, "key.keyboard.1"},
-                {"G2",    1, "key.keyboard.2"},
-                {"G#2",   2, "key.keyboard.3"},
-                {"A2",    3, "key.keyboard.4"},
-                {"A#2",   4, "key.keyboard.5"},
-                {"B2",    5, "key.keyboard.6"},
-                // 옥타브 3 (12): C3~B3 — 키 7 8 9 0 - = Q W E R T Y
-                {"C3",    6, "key.keyboard.7"},
-                {"C#3",   7, "key.keyboard.8"},
-                {"D3",    8, "key.keyboard.9"},
-                {"D#3",   9, "key.keyboard.0"},
-                {"E3",   10, "key.keyboard.minus"},
-                {"F3",   11, "key.keyboard.equal"},
-                {"F#3",  12, "key.keyboard.q"},
-                {"G3",   13, "key.keyboard.w"},
-                {"G#3",  14, "key.keyboard.e"},
-                {"A3",   15, "key.keyboard.r"},
-                {"A#3",  16, "key.keyboard.t"},
-                {"B3",   17, "key.keyboard.y"},
-                // 옥타브 4 (12): C4~B4 — 키 U I O P [ ] A S D F G H
-                {"C4",   18, "key.keyboard.u"},
-                {"C#4",  19, "key.keyboard.i"},
-                {"D4",   20, "key.keyboard.o"},
-                {"D#4",  21, "key.keyboard.p"},
-                {"E4",   22, "key.keyboard.left.bracket"},
-                {"F4",   23, "key.keyboard.right.bracket"},
-                {"F#4",  24, "key.keyboard.a"},
-                {"G4",   25, "key.keyboard.s"},
-                {"G#4",  26, "key.keyboard.d"},
-                {"A4",   27, "key.keyboard.f"},
-                {"A#4",  28, "key.keyboard.g"},
-                {"B4",   29, "key.keyboard.h"},
-                // 옥타브 5 (12): C5~B5 — 키 J K L ; ' Z X C V B N M
-                {"C5",   30, "key.keyboard.j"},
-                {"C#5",  31, "key.keyboard.k"},
-                {"D5",   32, "key.keyboard.l"},
-                {"D#5",  33, "key.keyboard.semicolon"},
-                {"E5",   34, "key.keyboard.apostrophe"},
-                {"F5",   35, "key.keyboard.z"},
-                {"F#5",  36, "key.keyboard.x"},
-                {"G5",   37, "key.keyboard.c"},
-                {"G#5",  38, "key.keyboard.v"},
-                {"A5",   39, "key.keyboard.b"},
-                {"A#5",  40, "key.keyboard.n"},
-                {"B5",   41, "key.keyboard.m"},
-                // 옥타브 6 (7): C6~F#6 — 키 , . / \ + 3음 미설정
-                // v3.7.1: D#6 기본 키 \ (backslash) 추가
-                {"C6",   42, "key.keyboard.comma"},
-                {"C#6",  43, "key.keyboard.period"},
-                {"D6",   44, "key.keyboard.slash"},
-                {"D#6",  45, "key.keyboard.backslash"},
-                {"E6",   46, ""},
-                {"F6",   47, ""},
-                {"F#6",  48, ""},
+                // 옥타브 2 (6): F#2~B2 → ` 1 2 3 (Shift 활용, slot 0~5)
+                {"F#2",   0, "key.keyboard.grave.accent", 1},
+                {"G2",    1, "key.keyboard.1",            0},
+                {"G#2",   2, "key.keyboard.1",            1},
+                {"A2",    3, "key.keyboard.2",            0},
+                {"A#2",   4, "key.keyboard.2",            1},
+                {"B2",    5, "key.keyboard.3",            0},
+                // 옥타브 3 (12): C3~B3 → Q W E Y U I O (R/T 건너뜀, slot 7~18, slot 6 비어있음)
+                {"C3",    7, "key.keyboard.q",            0},
+                {"C#3",   8, "key.keyboard.q",            1},
+                {"D3",    9, "key.keyboard.w",            0},
+                {"D#3",  10, "key.keyboard.w",            1},
+                {"E3",   11, "key.keyboard.e",            0},
+                {"F3",   12, "key.keyboard.y",            0},
+                {"F#3",  13, "key.keyboard.y",            1},
+                {"G3",   14, "key.keyboard.u",            0},
+                {"G#3",  15, "key.keyboard.u",            1},
+                {"A3",   16, "key.keyboard.i",            0},
+                {"A#3",  17, "key.keyboard.i",            1},
+                {"B3",   18, "key.keyboard.o",            0},
+                // 옥타브 4 (12): C4~B4 → A S D H J K L (F/G 건너뜀, slot 20~31, slot 19 비어있음)
+                {"C4",   20, "key.keyboard.a",            0},
+                {"C#4",  21, "key.keyboard.a",            1},
+                {"D4",   22, "key.keyboard.s",            0},
+                {"D#4",  23, "key.keyboard.s",            1},
+                {"E4",   24, "key.keyboard.d",            0},
+                {"F4",   25, "key.keyboard.h",            0},
+                {"F#4",  26, "key.keyboard.h",            1},
+                {"G4",   27, "key.keyboard.j",            0},
+                {"G#4",  28, "key.keyboard.j",            1},
+                {"A4",   29, "key.keyboard.k",            0},
+                {"A#4",  30, "key.keyboard.k",            1},
+                {"B4",   31, "key.keyboard.l",            0},
+                // 옥타브 5 (12): C5~B5 → Z X C N M , . (V/B 건너뜀, slot 33~44, slot 32 비어있음)
+                {"C5",   33, "key.keyboard.z",            0},
+                {"C#5",  34, "key.keyboard.z",            1},
+                {"D5",   35, "key.keyboard.x",            0},
+                {"D#5",  36, "key.keyboard.x",            1},
+                {"E5",   37, "key.keyboard.c",            0},
+                {"F5",   38, "key.keyboard.n",            0},
+                {"F#5",  39, "key.keyboard.n",            1},
+                {"G5",   40, "key.keyboard.m",            0},
+                {"G#5",  41, "key.keyboard.m",            1},
+                {"A5",   42, "key.keyboard.comma",        0},
+                {"A#5",  43, "key.keyboard.period",       1},
+                {"B5",   44, "key.keyboard.period",       0},
+                // 옥타브 6 (7): C6~F#6 → 7 8 9 0 (Shift 활용, slot 46~52, slot 45 비어있음)
+                {"C6",   46, "key.keyboard.7",            0},
+                {"C#6",  47, "key.keyboard.7",            1},
+                {"D6",   48, "key.keyboard.8",            0},
+                {"D#6",  49, "key.keyboard.8",            1},
+                {"E6",   50, "key.keyboard.9",            0},
+                {"F6",   51, "key.keyboard.0",            0},
+                {"F#6",  52, "key.keyboard.0",            1},
         };
         DEFAULT_PRESETS.put(PRESET_COMMON, common49);
 
@@ -241,6 +242,16 @@ public class MusixConfig {
         return null;
     }
 
+    /** v3.11.0: DEFAULT_PRESETS 의 4번째 필드(modifiers). 없으면 0. */
+    public static int lookupDefaultModifierForSlot(String preset, int slot) {
+        Object[][] table = DEFAULT_PRESETS.get(preset);
+        if (table == null) return 0;
+        for (Object[] d : table) {
+            if ((int) d[1] == slot) return d.length > 3 ? (int) d[3] : 0;
+        }
+        return 0;
+    }
+
     /**
      * v3.10.5: Mac 에서 일부 키가 Windows 와 다르게 인식되는 케이스를 자동 대체.
      * 현재 알려진 차이는 거의 없음 (GLFW 가 표준 키를 OS 무관하게 동일 코드로 변환).
@@ -318,10 +329,11 @@ public class MusixConfig {
         db.setSetting("clickAction", "PICKUP");
         for (Map.Entry<String, Object[][]> e : DEFAULT_PRESETS.entrySet()) {
             for (Object[] d : e.getValue()) {
-                db.upsertMapping(e.getKey(), (int) d[1], (String) d[0], (String) d[2], 0);
+                int mods = d.length > 3 ? (int) d[3] : 0;
+                db.upsertMapping(e.getKey(), (int) d[1], (String) d[0], (String) d[2], mods);
             }
         }
-        LOG.info("[Musix] DB 기본값 시드: 18 preset");
+        LOG.info("[Musix] DB 기본값 시드: {} preset", DEFAULT_PRESETS.size());
     }
 
     /**
@@ -339,7 +351,8 @@ public class MusixConfig {
         for (Object[] d : table) {
             String note = (String) d[0];
             if (existingNotes.contains(note)) continue;
-            db.upsertMapping(preset, (int) d[1], note, (String) d[2], 0);
+            int mods = d.length > 3 ? (int) d[3] : 0;
+            db.upsertMapping(preset, (int) d[1], note, (String) d[2], mods);
             added++;
         }
         if (added > 0) LOG.info("[Musix] preset '{}' 신규 {}음 추가 (총 {}음 default)", preset, added, table.length);

@@ -187,7 +187,8 @@ public final class KeyBindings {
         if (note == null) return;
         String defaultKey = MusixConfig.lookupDefaultKeyForSlot(note.mapping().preset, note.mapping().slot);
         if (defaultKey == null) return;
-        note.setKey(parseKey(defaultKey), 0);
+        int defaultMods = MusixConfig.lookupDefaultModifierForSlot(note.mapping().preset, note.mapping().slot);
+        note.setKey(parseKey(defaultKey), defaultMods);
     }
 
     public static void resetPreset(String preset) {

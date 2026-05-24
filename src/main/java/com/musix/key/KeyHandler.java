@@ -71,7 +71,8 @@ public final class KeyHandler {
 
         String preset = cfg.activePresetForTitle(title.getString());
 
-        if (cfg.debugMode) DebugChat.info("[KeyHandler] preset=" + preset + " key=" + key + " mods=" + modifiers);
+        if (cfg.debugMode) DebugChat.info("[KeyHandler] OS=" + MusixClient.osName()
+                + " preset=" + preset + " key=" + key + " mods=" + modifiers);
 
         GenericContainerScreenHandler handler = screen.getScreenHandler();
         int syncId = handler.syncId;
