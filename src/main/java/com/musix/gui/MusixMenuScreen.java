@@ -70,26 +70,30 @@ public class MusixMenuScreen extends Screen {
     @Override
     protected void init() {
         int by = this.height - 28;
-        int btnW = 110, gap = 6;
-        int totalW = btnW * 4 + gap * 3;
+        int btnW = 95, gap = 5;
+        int totalW = btnW * 5 + gap * 4;
         int startX = (this.width - totalW) / 2;
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("게임 키 설정"), btn -> {
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("게임 키"), btn -> {
             if (this.client != null) this.client.setScreen(new KeybindsScreen(this, this.client.options));
         }).dimensions(startX, by, btnW, 20).build());
 
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("통계"),
+                btn -> { if (this.client != null) this.client.setScreen(new MusixStatsScreen(this)); }
+        ).dimensions(startX + (btnW + gap), by, btnW, 20).build());
+
         this.addDrawableChild(ButtonWidget.builder(Text.literal("고급 설정"),
                 btn -> { if (this.client != null) this.client.setScreen(new MusixAdvancedScreen(this)); }
-        ).dimensions(startX + btnW + gap, by, btnW, 20).build());
+        ).dimensions(startX + (btnW + gap) * 2, by, btnW, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("⚠ 선택 preset 초기화"), btn -> {
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("⚠ preset 초기화"), btn -> {
             MusixClient.config().resetSettingsToDefaults();
             KeyBindings.resetPreset(currentPreset());
             awaitingIndex = -1;
-        }).dimensions(startX + (btnW + gap) * 2, by, btnW, 20).build());
+        }).dimensions(startX + (btnW + gap) * 3, by, btnW, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("닫기"), btn -> this.close())
-                .dimensions(startX + (btnW + gap) * 3, by, btnW, 20).build());
+                .dimensions(startX + (btnW + gap) * 4, by, btnW, 20).build());
     }
 
     @Override
@@ -101,61 +105,21 @@ public class MusixMenuScreen extends Screen {
         context.drawCenteredTextWithShadow(tr, "♪ Musix ♪", cx, 8, COLOR_TITLE);
         context.drawCenteredTextWithShadow(tr, "v" + MusixClient.version(), cx, 20, COLOR_VERSION);
 
-        // ===== 상태 박스 (v4.0.4: 클릭 버튼/동작 라인 제거 — 고급 설정에서만) =====
-        int statusY = 36, statusX = 20;
-        int statusW = this.width - 40, statusH = 71;
-        context.fill(statusX, statusY, statusX + statusW, statusY + statusH, COLOR_BG);
-        drawBorder(context, statusX, statusY, statusW, statusH);
-
-        int y = statusY + 5;
-        context.drawTextWithShadow(tr, "▣ 상태", statusX + 6, y, COLOR_HEADER);
-        y += 12;
+        // v4.1.0: 상태 박스 완전 제거 → MusixStatsScreen 으로 이동
+        // 자동 매핑은 advanced 화면 또는 자동매핑 기능으로 대체. 모든 row Y 비활성.
+        rowYClickButton = -1;
+        rowYClickAction = -1;
+        rowYDebug = -1;
+        rowYAutoMap = -1;
 
         MusixConfig cfg = MusixClient.config();
         String active = KeyBindings.activePresetName();
         String shown = currentPreset();
 
-        // v4.0.4: 클릭 버튼/동작 라인은 status 박스에서 제거 (고급 설정에서만 변경)
-        rowYClickButton = -1;
-        rowYClickAction = -1;
-        rowYDebug = -1;
-
-        rowYAutoMap = y;
-        context.drawTextWithShadow(tr, "자동 매핑:", statusX + 10, y, COLOR_LABEL);
-        int cacheSlots = LastSeenContainer.nonEmptySlots().size();
-        String cacheTitle = LastSeenContainer.title();
-        String autoMapText;
-        int autoMapColor;
-        long now = System.currentTimeMillis();
-        if (autoMapMessage != null && autoMapUntil > now) {
-            autoMapText = autoMapMessage;
-            autoMapColor = autoMapSuccess ? COLOR_OK : COLOR_WARN;
-        } else if (cacheSlots == 0) {
-            autoMapText = "(상자 안 열어봄)";
-            autoMapColor = COLOR_VERSION;
-        } else {
-            autoMapText = "캐시 " + cacheSlots + "슬롯" + (cacheTitle != null ? " ('" + cacheTitle + "')" : "")
-                    + "  [클릭으로 활성 preset에 적용]";
-            autoMapColor = COLOR_AWAITING;
-        }
-        context.drawTextWithShadow(tr, autoMapText, statusX + 110, y, autoMapColor);
-        y += 11;
-
-        long sinceLast = MusixStatus.millisSinceLastNote();
-        context.drawTextWithShadow(tr, "마지막 음 입력:", statusX + 10, y, COLOR_LABEL);
-        if (sinceLast < 0) {
-            context.drawTextWithShadow(tr, "(아직 없음)", statusX + 110, y, COLOR_WARN);
-        } else {
-            String note = MusixStatus.lastNote();
-            context.drawTextWithShadow(tr, (note == null ? "?" : note)
-                    + "  (슬롯 " + MusixStatus.lastSlot() + ", " + (sinceLast / 1000L) + "초 전, 총 "
-                    + MusixStatus.noteCount() + "회)", statusX + 110, y, COLOR_OK);
-        }
-
-        // ===== preset 탭 UI =====
+        // ===== preset 탭 UI (상태 박스 자리 없어져서 키 매핑 표가 위로) =====
         listX = 20;
         listW = this.width - 40;
-        int tabsY = statusY + statusH + 8;
+        int tabsY = 36;
         int tabH = 14;
         rowYPreset = tabsY;
         tabAreas.clear();
@@ -201,7 +165,7 @@ public class MusixMenuScreen extends Screen {
         context.fill(listX, listTop, listX + listW, listBottom, COLOR_BG);
         drawBorder(context, listX, listTop, listW, listBottom - listTop);
 
-        now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         boolean conflictActive = conflictUntil > now;
         if (!conflictActive) conflictIndex = -1;
 
