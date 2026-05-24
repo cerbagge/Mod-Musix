@@ -21,6 +21,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(HandledScreen.class)
 public class HandledScreenMixin {
 
+    /** v4.0.3: 키 떼면 자동반복 추적 상태 reset → 다음 누름 다시 처리 가능. */
+    @Inject(method = "keyReleased", at = @At("HEAD"))
+    private void musix$preKeyReleased(int keyCode, int scanCode, int modifiers,
+                                      CallbackInfoReturnable<Boolean> cir) {
+        KeyBindings.releaseKey(keyCode);
+    }
+
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void musix$preKeyPressed(int keyCode, int scanCode, int modifiers,
                                      CallbackInfoReturnable<Boolean> cir) {
@@ -45,6 +52,12 @@ public class HandledScreenMixin {
 
         for (KeyBindings.NoteEntry note : KeyBindings.getNotes(preset)) {
             if (!note.matches(keyCode, scanCode, effectiveMods)) continue;
+
+            // v4.0.3: 키 자동반복 방지 — 처음 누름만 클릭, 꾹 누른 동안 추가 클릭 무시
+            if (!KeyBindings.acquireKeyPress(keyCode)) {
+                cir.setReturnValue(true); // 처리됨으로 표시 (다른 핸들러 차단)
+                return;
+            }
 
             GenericContainerScreenHandler handler = gcs.getScreenHandler();
             int slot = note.mapping().slot;

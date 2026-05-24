@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class KeyBindings {
     public static final String CATEGORY = "key.categories.musix";
@@ -27,6 +28,27 @@ public final class KeyBindings {
     public static final int MOD_SPACE = 0x10000;
     // v3.6.1: Ctrl 조합 비활성화 — Shift/Alt + Space (v3.12.0) 만 허용
     public static final int MOD_MASK = GLFW.GLFW_MOD_SHIFT | GLFW.GLFW_MOD_ALT | MOD_SPACE;
+
+    /**
+     * v4.0.3: 현재 눌려있는 키 추적. OS 자동 반복 (keyPressed 중복 호출) 방지용.
+     * 키 처음 누를 때 add(true) → 처리, 자동반복 시 add(false) → 무시. release 시 remove.
+     */
+    private static final Set<Integer> pressedKeys = ConcurrentHashMap.newKeySet();
+
+    /** 처음 누른 키면 true 반환 (acquire 성공), 자동반복이면 false. */
+    public static boolean acquireKeyPress(int keyCode) {
+        return pressedKeys.add(keyCode);
+    }
+
+    /** 키 떼었을 때 호출 — 다음 누름이 다시 acquire 가능하게. */
+    public static void releaseKey(int keyCode) {
+        pressedKeys.remove(keyCode);
+    }
+
+    /** 모든 키 상태 reset (화면 전환/포커스 잃을 때 stale 상태 방지). */
+    public static void clearPressedKeys() {
+        pressedKeys.clear();
+    }
 
     /** v3.12.0: 현재 Space 키 눌림 여부 (GLFW 직접 조회). */
     public static boolean isSpaceHeld() {

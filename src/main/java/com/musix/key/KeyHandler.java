@@ -35,9 +35,15 @@ public final class KeyHandler {
             if (screen instanceof GenericContainerScreen gcs) {
                 ScreenKeyboardEvents.allowKeyPress(screen).register((scr, key, scancode, modifiers) ->
                         !handleScreenKey(client, gcs, key, scancode, modifiers));
+                // v4.0.3: 키 떼면 자동반복 추적 reset
+                ScreenKeyboardEvents.allowKeyRelease(screen).register((scr, key, scancode, modifiers) -> {
+                    KeyBindings.releaseKey(key);
+                    return true;
+                });
                 if (screen != lastDumpedScreen) {
                     dumpDelayTicks = 10;
                     lastDumpedScreen = screen;
+                    KeyBindings.clearPressedKeys(); // 화면 전환 시 stale 키 상태 reset
                 }
             }
         });
@@ -84,6 +90,10 @@ public final class KeyHandler {
 
         for (KeyBindings.NoteEntry note : KeyBindings.getNotes(preset)) {
             if (note.matches(key, scancode, effectiveMods)) {
+                // v4.0.3: 키 자동반복 방지
+                if (!KeyBindings.acquireKeyPress(key)) {
+                    return true; // 이미 눌린 키 (auto-repeat) → 무시
+                }
                 int slot = note.mapping().slot;
                 if (slot < 0 || slot >= slotsCount) return true;
                 if (MusixConfig.BLOCKED_SLOTS.contains(slot)) {
