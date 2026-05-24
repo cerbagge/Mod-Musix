@@ -184,9 +184,16 @@ public class MusixConfig {
         return PRESET_COMMON;
     }
 
-    /** 상자 제목이 containerPrefix 의 어느 항목으로든 시작하면 true. 콤마 구분 다중 prefix 지원. */
+    /**
+     * 상자 제목 매칭. v3.12.0: PlanetEarth 전용 모드라 "음악"/"악기" 는 hardcoded 항상 매칭.
+     * 사용자가 prefix 를 잘못 설정해도 (예: "음악" 만) 드럼 상자 "악기 - X(드럼)" 도 잡힘.
+     */
     public boolean titleMatchesPrefix(String title) {
-        if (title == null || containerPrefix == null || containerPrefix.isEmpty()) return false;
+        if (title == null) return false;
+        // 1) PlanetEarth 기본 prefix — 사용자 설정과 무관하게 항상 매칭
+        if (title.startsWith("음악") || title.startsWith("악기")) return true;
+        // 2) 사용자 설정 prefix (커스텀 서버나 추가 케이스 대비)
+        if (containerPrefix == null || containerPrefix.isEmpty()) return false;
         for (String p : containerPrefix.split(",")) {
             String trimmed = p.trim();
             if (!trimmed.isEmpty() && title.startsWith(trimmed)) return true;

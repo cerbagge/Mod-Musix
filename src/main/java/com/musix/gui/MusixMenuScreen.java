@@ -237,7 +237,7 @@ public class MusixMenuScreen extends Screen {
                 context.drawTextWithShadow(tr, noteName, colNote, rowY, noteColor);
                 context.drawTextWithShadow(tr, "#" + note.mapping().slot, colSlot, rowY, COLOR_VERSION);
                 if (rowIndex == awaitingIndex) {
-                    context.drawTextWithShadow(tr, "▶ 키 입력 (Shift/Alt 조합 가능, ESC=기본값)",
+                    context.drawTextWithShadow(tr, "▶ 키 입력 (Shift/Alt/Space 조합 가능, ESC=기본값)",
                             colKey, rowY, COLOR_AWAITING);
                 } else {
                     int keyColor = note.isUnbound() ? COLOR_WARN
@@ -265,7 +265,7 @@ public class MusixMenuScreen extends Screen {
             else help = "⚠ 키 충돌";
             helpColor = COLOR_WARN;
         } else if (awaitingIndex >= 0) {
-            help = "▶ 매핑할 키를 누르세요 (Shift/Alt 조합 가능). ESC=기본값";
+            help = "▶ 매핑할 키를 누르세요 (Shift/Alt/Space 조합 가능). ESC=기본값";
             helpColor = COLOR_AWAITING;
         } else {
             help = "Musix 상자에서 키 누르면 음 재생 (상자 제목별로 preset 자동 선택)";
@@ -388,10 +388,14 @@ public class MusixMenuScreen extends Screen {
                 awaitingIndex = -1;
                 return true;
             }
-            // modifier 키 자체는 매핑 안 함 — 사용자가 Shift+1 같이 같이 누르도록 대기
+            // modifier 키 자체는 매핑 안 함 — 사용자가 Shift+1, Space+1 같이 누르도록 대기
             if (isModifierOnlyKey(keyCode)) return true;
+            // v3.12.0: Space 도 modifier 로 취급 (단독 매핑 불가, 조합 전용)
+            if (keyCode == GLFW.GLFW_KEY_SPACE) return true;
 
-            int mods = modifiers & KeyBindings.MOD_MASK;
+            // v3.12.0: Space 가 눌려있으면 MOD_SPACE 비트 추가
+            int effectiveMods = KeyBindings.augmentModsWithSpace(modifiers);
+            int mods = effectiveMods & KeyBindings.MOD_MASK;
             if (hasConflict(awaitingIndex, keyCode, scanCode, mods)) return true;
             InputUtil.Key key = InputUtil.fromKeyCode(keyCode, scanCode);
             applyKeyChange(awaitingIndex, key, mods);

@@ -71,15 +71,19 @@ public final class KeyHandler {
 
         String preset = cfg.activePresetForTitle(title.getString());
 
+        // v3.12.0: Space 가 눌려있으면 mods 에 MOD_SPACE 비트 추가 (Space 조합 지원)
+        int effectiveMods = KeyBindings.augmentModsWithSpace(modifiers);
+
         if (cfg.debugMode) DebugChat.info("[KeyHandler] OS=" + MusixClient.osName()
-                + " preset=" + preset + " key=" + key + " mods=" + modifiers);
+                + " preset=" + preset + " key=" + key + " mods=" + effectiveMods
+                + (effectiveMods != modifiers ? "(+Space)" : ""));
 
         GenericContainerScreenHandler handler = screen.getScreenHandler();
         int syncId = handler.syncId;
         int slotsCount = handler.slots.size();
 
         for (KeyBindings.NoteEntry note : KeyBindings.getNotes(preset)) {
-            if (note.matches(key, scancode, modifiers)) {
+            if (note.matches(key, scancode, effectiveMods)) {
                 int slot = note.mapping().slot;
                 if (slot < 0 || slot >= slotsCount) return true;
                 if (MusixConfig.BLOCKED_SLOTS.contains(slot)) {
@@ -98,10 +102,10 @@ public final class KeyHandler {
             }
         }
         // v3.11.1: 매핑 없는 modifier 조합 (Shift+E 등) 차단 — 인벤토리 닫힘 방지.
-        // 일반 키 (modifier 없음) 는 마크 기본 동작 통과. ESC 도 통과.
-        int relevant = modifiers & KeyBindings.MOD_MASK;
+        // v3.12.0: Space 조합도 포함.
+        int relevant = effectiveMods & KeyBindings.MOD_MASK;
         if (relevant != 0 && key != org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
-            if (cfg.debugMode) DebugChat.warn("[KeyHandler] 매핑 없는 modifier 조합 차단 key=" + key + " mods=" + modifiers);
+            if (cfg.debugMode) DebugChat.warn("[KeyHandler] 매핑 없는 modifier 조합 차단 key=" + key + " mods=" + effectiveMods);
             return true;
         }
         if (cfg.debugMode) DebugChat.warn("[KeyHandler] 매칭 없음 (preset=" + preset + ")");

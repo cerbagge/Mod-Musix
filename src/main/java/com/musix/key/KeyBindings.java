@@ -6,6 +6,7 @@ import com.musix.config.LastSeenContainer;
 import com.musix.config.MusixConfig;
 import com.musix.config.MusixDatabase;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
@@ -22,8 +23,26 @@ import java.util.Set;
 
 public final class KeyBindings {
     public static final String CATEGORY = "key.categories.musix";
-    // v3.6.1: Ctrl 조합 매핑 비활성화 — Shift/Alt 만 허용
-    public static final int MOD_MASK = GLFW.GLFW_MOD_SHIFT | GLFW.GLFW_MOD_ALT;
+    /** v3.12.0: Space 조합 modifier (GLFW 표준 비트와 충돌 안 하는 high bit). */
+    public static final int MOD_SPACE = 0x10000;
+    // v3.6.1: Ctrl 조합 비활성화 — Shift/Alt + Space (v3.12.0) 만 허용
+    public static final int MOD_MASK = GLFW.GLFW_MOD_SHIFT | GLFW.GLFW_MOD_ALT | MOD_SPACE;
+
+    /** v3.12.0: 현재 Space 키 눌림 여부 (GLFW 직접 조회). */
+    public static boolean isSpaceHeld() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.getWindow() == null) return false;
+        long window = client.getWindow().getHandle();
+        if (window == 0L) return false;
+        try {
+            return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_SPACE) == GLFW.GLFW_PRESS;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Space 가 눌려있으면 MOD_SPACE 비트 추가한 mods 반환. */
+    public static int augmentModsWithSpace(int rawMods) {
+        return isSpaceHeld() ? (rawMods | MOD_SPACE) : rawMods;
+    }
 
     private static final Logger LOG = LoggerFactory.getLogger("musix/keys");
     private static final Map<String, List<NoteEntry>> NOTES_BY_PRESET = new LinkedHashMap<>();
@@ -70,6 +89,7 @@ public final class KeyBindings {
             if ((mapping.modifiers & GLFW.GLFW_MOD_CONTROL) != 0) sb.append("Ctrl+");
             if ((mapping.modifiers & GLFW.GLFW_MOD_ALT) != 0)     sb.append("Alt+");
             if ((mapping.modifiers & GLFW.GLFW_MOD_SHIFT) != 0)   sb.append("Shift+");
+            if ((mapping.modifiers & MOD_SPACE) != 0)             sb.append("Space+");
             return sb + base;
         }
 
