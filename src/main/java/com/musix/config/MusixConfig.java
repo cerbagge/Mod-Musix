@@ -98,21 +98,29 @@ public class MusixConfig {
         };
         DEFAULT_PRESETS.put(PRESET_COMMON, common49);
 
-        // 드럼 12음 (v3.10.2): 사용자 명시 정확 슬롯.
-        // 같은 종류는 같은 열(세로) — 베이스(col3), 하이햇(col4), 스네어(col5), 심벌은 행5에 가로.
+        // 드럼 12음 (v3.10.5): 게임 GUI 표시명과 일치 — 자동매핑 100% 매칭용.
+        // 실제 PlanetEarth 드럼 GUI 구조 (디버그 확인):
+        //   col 3 (slot 12/21/30) = 스네어 낮은음 / 중간음 / 높은음
+        //   col 4 (slot 13/22/31) = 베이스 낮은음 / 중간음 / 높은음
+        //   col 5 (slot 14/23/32) = 하이햇 낮은음 / 중간음 / 높은음
+        //   row 5 (slot 48/49/50) = 심벌 낮은음 / 중간음 / 높은음
         DEFAULT_PRESETS.put(PRESET_DRUM, new Object[][] {
-                {"베이스-상", 12, "key.keyboard.1"},
-                {"베이스-중", 21, "key.keyboard.2"},
-                {"베이스-하", 30, "key.keyboard.3"},
-                {"하이햇-상", 13, "key.keyboard.q"},
-                {"하이햇-중", 22, "key.keyboard.w"},
-                {"하이햇-하", 31, "key.keyboard.e"},
-                {"스네어-상", 14, "key.keyboard.a"},
-                {"스네어-중", 23, "key.keyboard.s"},
-                {"스네어-하", 32, "key.keyboard.d"},
-                {"심벌-상",   48, "key.keyboard.z"},
-                {"심벌-중",   49, "key.keyboard.x"},
-                {"심벌-하",   50, "key.keyboard.c"},
+                // 베이스: 1 / 2 / 3 (낮음→중간→높음)
+                {"베이스 낮은음", 13, "key.keyboard.1"},
+                {"베이스 중간음", 22, "key.keyboard.2"},
+                {"베이스 높은음", 31, "key.keyboard.3"},
+                // 스네어: Q / W / E
+                {"스네어 낮은음", 12, "key.keyboard.q"},
+                {"스네어 중간음", 21, "key.keyboard.w"},
+                {"스네어 높은음", 30, "key.keyboard.e"},
+                // 하이햇: A / S / D
+                {"하이햇 낮은음", 14, "key.keyboard.a"},
+                {"하이햇 중간음", 23, "key.keyboard.s"},
+                {"하이햇 높은음", 32, "key.keyboard.d"},
+                // 심벌: Z / X / C
+                {"심벌 낮은음",   48, "key.keyboard.z"},
+                {"심벌 중간음",   49, "key.keyboard.x"},
+                {"심벌 높은음",   50, "key.keyboard.c"},
         });
     }
 
@@ -227,8 +235,26 @@ public class MusixConfig {
     public static String lookupDefaultKeyForSlot(String preset, int slot) {
         Object[][] table = DEFAULT_PRESETS.get(preset);
         if (table == null) return null;
-        for (Object[] d : table) if ((int) d[1] == slot) return (String) d[2];
+        for (Object[] d : table) {
+            if ((int) d[1] == slot) return osAdjustKey((String) d[2]);
+        }
         return null;
+    }
+
+    /**
+     * v3.10.5: Mac 에서 일부 키가 Windows 와 다르게 인식되는 케이스를 자동 대체.
+     * 현재 알려진 차이는 거의 없음 (GLFW 가 표준 키를 OS 무관하게 동일 코드로 변환).
+     * 다만 Mac 일부 키보드의 backslash 위치 문제 대비.
+     */
+    public static String osAdjustKey(String keyName) {
+        if (keyName == null || keyName.isEmpty()) return keyName;
+        if (com.musix.MusixClient.isMacOS()) {
+            // Mac 영문 키보드는 backslash 가 표준 위치에 있음 (Return 위).
+            // 한글 키보드의 ₩ 키도 GLFW_KEY_BACKSLASH 와 동일.
+            // 별도 OS 대체 필요한 케이스가 발견되면 여기 추가.
+            return keyName;
+        }
+        return keyName;
     }
 
     public static Object[][] defaultsFor(String preset) {
@@ -262,14 +288,28 @@ public class MusixConfig {
     }
 
     /**
-     * 옛 placeholder 음 이름을 정식 이름으로 변경. 항목별로 안전하게 UPDATE.
-     * v3.10.1: 사용자 정정 — 정식 이름은 "심벌-*". v3.9.1/v3.10.0 의 "크래시-*" 를 되돌림.
+     * 옛 음 이름을 게임 GUI 표시명과 일치하도록 변환. 항목별 안전 UPDATE.
+     * v3.10.5: "베이스-상/중/하" → "베이스 낮은음/중간음/높은음" 등.
+     *   "상" = 위쪽 슬롯 = 낮은음, "중" = 중간음, "하" = 아래쪽 슬롯 = 높은음.
+     * 키 매핑 / modifiers 는 보존됨 (renameNote 는 음 이름만 변경).
      */
     private static void migrateLegacyNoteNames(MusixDatabase db) {
-        // v3.9.1/v3.10.0 잠시 "크래시-*" 로 저장되었던 음들을 정식 이름 "심벌-*" 로 복원.
+        // v3.9.1/v3.10.0 "크래시-*" → "심벌-*" 1단계
         db.renameNote(PRESET_DRUM, "크래시-상", "심벌-상");
         db.renameNote(PRESET_DRUM, "크래시-중", "심벌-중");
         db.renameNote(PRESET_DRUM, "크래시-하", "심벌-하");
+        // v3.10.5 2단계: "X-상/중/하" → "X 낮은음/중간음/높은음"
+        String[] types = { "베이스", "스네어", "하이햇", "심벌" };
+        String[][] suffixes = {
+                { "-상", " 낮은음" },
+                { "-중", " 중간음" },
+                { "-하", " 높은음" },
+        };
+        for (String t : types) {
+            for (String[] s : suffixes) {
+                db.renameNote(PRESET_DRUM, t + s[0], t + s[1]);
+            }
+        }
     }
 
     private static void seedAllPresets(MusixDatabase db) {
