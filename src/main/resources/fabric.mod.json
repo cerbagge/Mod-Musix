@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "musix",
+  "version": "${version}",
+  "name": "Musix",
+  "description": "PlanetEarth Server (planetearth.kr) 전용. 키보드로 서버의 음악/악기 상자 슬롯을 눌러 노트 사운드를 재생하는 클라이언트 모드.",
+  "authors": [
+    "MNT"
+  ],
+  "license": "CC-BY-NC-SA-4.0",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.musix.MusixClient"
+    ]
+  },
+  "mixins": [
+    "musix.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
+}

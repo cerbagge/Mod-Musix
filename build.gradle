@@ -1,0 +1,78 @@
+plugins {
+    id 'fabric-loom' version '1.6-SNAPSHOT'
+    id 'maven-publish'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+}
+
+// shade 전용 컨피규레이션 — fabric-loom 의 분류 시스템과 충돌 회피
+configurations {
+    shade
+    implementation.extendsFrom(shade)
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // H2 — shade 컨피규레이션으로 우리 jar 내부에 relocate 하여 포함
+    // Lunar/Ichor ClassLoader 격리 회피 (jar-in-jar 대신 직접 임베딩)
+    shade "com.h2database:h2:2.2.224"
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 17
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+shadowJar {
+    configurations = [project.configurations.shade]
+    archiveClassifier.set('shadow')
+
+    // org.h2 클래스를 우리 jar 내부 패키지로 relocate
+    // 우리 코드는 org.h2.jdbcx.JdbcDataSource 그대로 사용하지만 bytecode 수준에서 자동 치환
+    relocate 'org.h2', 'com.musix.shaded.h2'
+
+    // 라이선스/메타데이터 정리
+    exclude 'META-INF/maven/**'
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+}
+
+// fabric-loom remapJar 가 shadowJar 결과를 입력으로 사용하도록
+remapJar {
+    inputFile.set(shadowJar.archiveFile)
+    dependsOn(shadowJar)
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}

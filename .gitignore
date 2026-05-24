@@ -1,0 +1,20 @@
+.gradle/
+build/
+out/
+classes/
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+run/
+remappedSrc/
+
+# 로컬 사용자 환경 파일
+이전버전/
+*.broken-*
+*.pre-v*
+
+# OS 잡파일
+.DS_Store
+Thumbs.db
