@@ -75,7 +75,8 @@ public class MusixStatsScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context);
+        // v4.2.0: 1.20.2+ 에서는 super.render 가 배경을 그림 (renderBackground 직접 호출 X)
+        super.render(context, mouseX, mouseY, delta);
         TextRenderer tr = this.textRenderer;
         int cx = this.width / 2;
 
@@ -131,8 +132,6 @@ public class MusixStatsScreen extends Screen {
         if (flashMessage != null && System.currentTimeMillis() < flashUntil) {
             context.drawCenteredTextWithShadow(tr, flashMessage, cx, this.height - 42, COLOR_OK);
         }
-
-        super.render(context, mouseX, mouseY, delta);
     }
 
     /** 분당 입력 꺾은선 그래프. */

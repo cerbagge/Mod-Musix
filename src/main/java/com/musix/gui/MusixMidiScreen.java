@@ -154,7 +154,8 @@ public class MusixMidiScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context);
+        // v4.2.0: 1.20.2+ 에서는 super.render 가 배경을 그림 (renderBackground 직접 호출 X)
+        super.render(context, mouseX, mouseY, delta);
         TextRenderer tr = this.textRenderer;
         int cx = this.width / 2;
 
@@ -243,8 +244,6 @@ public class MusixMidiScreen extends Screen {
             context.drawCenteredTextWithShadow(tr, flashMessage, cx, this.height - 42,
                     flashSuccess ? COLOR_OK : COLOR_WARN);
         }
-
-        super.render(context, mouseX, mouseY, delta);
     }
 
     private int COLOR_VERSION() { return 0xFFAAAAAA; }

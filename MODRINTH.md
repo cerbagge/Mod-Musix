@@ -1,10 +1,10 @@
 # Musix
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1-brightgreen)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.20.2--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v4.1.3-blueviolet)
+![Version](https://img.shields.io/badge/Version-v4.2.0-blueviolet)
 
 ---
 
@@ -32,7 +32,7 @@
 
 ### Usage
 
-1. Install the jar in your `mods/` folder (Fabric 1.20.1 + Fabric API required)
+1. Install the jar matching your Minecraft version in your `mods/` folder — Fabric Loader + Fabric API required
 2. Join **PlanetEarth Server** (`planetearth.kr`)
 3. Open a music chest (e.g. `악기 - 하프`) — the mod silently caches its slot layout
 4. Press **`\`** (backslash, default menu key) — opens the Musix menu
@@ -80,7 +80,7 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 ### Compatibility
 
-- Minecraft **1.20.1** · Fabric Loader 0.15+ · Fabric API
+- Minecraft **1.20.2 – 1.21.x** — separate jar per range (`1.20.2–1.20.4` / `1.20.5–1.20.6` / `1.21+`) · Fabric Loader 0.15+ · Fabric API
 - **Lunar Client (Ichor)** verified — H2 DB shaded into the jar to bypass ClassLoader isolation
 - License: **CC-BY-NC-SA-4.0**
 
@@ -115,7 +115,7 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 ### 사용 방법
 
-1. `mods/` 폴더에 jar 설치 (Fabric 1.20.1 + Fabric API 필수)
+1. 자신의 Minecraft 버전에 맞는 jar 를 `mods/` 폴더에 설치 — Fabric Loader + Fabric API 필수
 2. **PlanetEarth 서버** 접속 (`planetearth.kr`)
 3. 음악 상자 (예: `악기 - 하프`) 열기 → 모드가 슬롯 자동 캐시
 4. **`\`** (backslash, 메뉴 기본 키) 누르기 → Musix 메뉴 열림
@@ -163,7 +163,7 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 ### 호환
 
-- Minecraft **1.20.1** · Fabric Loader 0.15+ · Fabric API
+- Minecraft **1.20.2 – 1.21.x** — 구간별 jar (`1.20.2–1.20.4` / `1.20.5–1.20.6` / `1.21+`) · Fabric Loader 0.15+ · Fabric API
 - **Lunar Client (Ichor)** 검증 완료 — H2 DB shade 처리로 ClassLoader 격리 회피
 - 라이센스: **CC-BY-NC-SA-4.0**
 

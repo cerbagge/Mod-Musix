@@ -24,30 +24,37 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
+      # gradle.properties 는 로컬(Windows) 편의를 위해 org.gradle.java.home 을 고정해 둠.
+      # CI(Linux)에서는 그 경로가 없으므로 줄을 제거하고 setup-java 의 JDK 21 을 사용.
+      - name: Drop local java.home pin for CI
+        run: sed -i '/^org\.gradle\.java\.home/d' gradle.properties
+
       - name: Grant gradlew execute permission
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon --stacktrace
+      - name: Build all versions with Gradle
+        run: ./gradlew chiseledBuild --no-daemon --stacktrace
 
-      - name: List build outputs
-        run: ls -lh build/libs/
+      - name: Collect distributable jars
+        run: |
+          mkdir -p dist
+          find versions -path '*/build/libs/*.jar' \
+            ! -name '*-sources.jar' ! -name '*-dev-shadow.jar' \
+            -exec cp {} dist/ \;
+          ls -lh dist/
 
-      - name: Upload jar artifact
+      - name: Upload jar artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: musix-jar
-          path: |
-            build/libs/musix-*.jar
-            !build/libs/musix-*-sources.jar
+          name: musix-jars
+          path: dist/*.jar
           if-no-files-found: error
 
       - name: Create Release on tag push
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            build/libs/musix-*.jar
+          files: dist/*.jar
           generate_release_notes: true
           draft: false
           prerelease: false

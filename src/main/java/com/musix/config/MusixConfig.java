@@ -87,7 +87,7 @@ public class MusixConfig {
                 {"G5",   40, "key.keyboard.m",            0},
                 {"G#5",  41, "key.keyboard.m",            65536},
                 {"A5",   42, "key.keyboard.comma",        0},
-                {"A#5",  43, "key.keyboard.period",       65536},
+                {"A#5",  43, "key.keyboard.comma",        65536},
                 {"B5",   44, "key.keyboard.period",       0},
                 // 옥타브 6 (7): C6~F#6 → 7 8 9 0 (Space 활용, slot 46~52, slot 45 비어있음)
                 {"C6",   46, "key.keyboard.7",            0},

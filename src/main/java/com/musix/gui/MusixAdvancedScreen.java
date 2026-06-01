@@ -47,7 +47,7 @@ public class MusixAdvancedScreen extends Screen {
         ).dimensions(startX + (btnW + gap), by, btnW, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("설정 폴더"),
-                btn -> Util.getOperatingSystem().open(FabricLoader.getInstance().getConfigDir().toFile())
+                btn -> Util.getOperatingSystem().open(FabricLoader.getInstance().getConfigDir().toUri())
         ).dimensions(startX + (btnW + gap) * 2, by, btnW, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("← 메뉴"),
@@ -61,7 +61,8 @@ public class MusixAdvancedScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context);
+        // v4.2.0: 1.20.2+ 에서는 super.render 가 배경을 그림 (renderBackground 직접 호출 X)
+        super.render(context, mouseX, mouseY, delta);
         TextRenderer tr = this.textRenderer;
         int cx = this.width / 2;
 
@@ -102,8 +103,6 @@ public class MusixAdvancedScreen extends Screen {
         context.drawCenteredTextWithShadow(tr,
                 "키 매핑 export/import 는 [매핑 슬롯] 화면을 사용하세요.",
                 cx, this.height - 48, COLOR_VERSION);
-
-        super.render(context, mouseX, mouseY, delta);
     }
 
     private void drawBorder(DrawContext context, int x, int y, int w, int h) {
