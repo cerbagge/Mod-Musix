@@ -1,10 +1,10 @@
 # Musix
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1-brightgreen)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.20.2--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v4.1.3-blueviolet)
+![Version](https://img.shields.io/badge/Version-v4.2.0-blueviolet)
 
 **🌐 Languages**: **English** (this page) · [한국어](README_KO.md) · [Modrinth description](MODRINTH.md)
 
@@ -33,7 +33,7 @@ A client-side Fabric mod that lets you play PlanetEarth's chest-GUI based instru
 
 ## Usage
 
-1. Install the jar in your `mods/` folder (Fabric 1.20.1 + Fabric API required)
+1. Install the jar matching your Minecraft version (see [Compatibility](#compatibility)) in your `mods/` folder — Fabric Loader + Fabric API required
 2. Join **PlanetEarth Server** (`planetearth.kr`)
 3. Open a music chest (e.g. `악기 - 하프`) — the mod silently caches its slot layout
 4. Press **`\`** (backslash, default menu key) → opens the Musix menu
@@ -84,18 +84,31 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 ## Build
 
+Multi-version via [Stonecutter](https://stonecutter.kikugie.dev/). Build all variants at once (requires JDK 21):
+
 ```sh
-./gradlew build
+./gradlew chiseledBuild
 ```
 
-Output: `build/libs/musix-<version>.jar`
+Output: `versions/<mc>/build/libs/musix-mc<mc>-<version>.jar` (one jar per Minecraft version).
+1.20.2–1.20.4 is compiled to Java 17 bytecode, 1.20.5+ to Java 21. `gradle.properties` pins a local
+`org.gradle.java.home` (adjust the path for your machine, or remove it and set `JAVA_HOME` to a JDK 21).
 
-GitHub Actions builds the jar automatically on every push and creates a Release on tag push (`v*`).
+GitHub Actions builds every variant on each push and attaches them to a Release on tag push (`v*`).
 
 ## Compatibility
 
-- Minecraft **1.20.1**, Fabric Loader 0.15+, Fabric API
+Pick the jar matching your Minecraft version:
+
+| Jar | Minecraft | Java |
+|-----|-----------|------|
+| `musix-mc1.20.4-<ver>.jar` | 1.20.2 – 1.20.4 | 17+ |
+| `musix-mc1.20.6-<ver>.jar` | 1.20.5 – 1.20.6 | 21+ |
+| `musix-mc1.21.1-<ver>.jar` | 1.21+ | 21+ |
+
+- Fabric Loader 0.15+, Fabric API
 - **Lunar Client** (Ichor) verified — H2 shaded into jar to avoid ClassLoader isolation
+- Plain **1.20.1** is not supported — its `Screen.renderBackground` signature differs from 1.20.2+
 - License: **CC-BY-NC-SA-4.0**
 
 ## License

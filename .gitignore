@@ -10,6 +10,9 @@ classes/
 run/
 remappedSrc/
 
+# 버전별 배포 jar 모음 (빌드 산출물 — ./gradlew chiseledBuild 로 재생성 가능)
+version/
+
 # 로컬 사용자 환경 파일
 이전버전/
 *.broken-*

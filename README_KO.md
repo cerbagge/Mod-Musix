@@ -1,10 +1,10 @@
 # Musix
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1-brightgreen)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.20.2--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v4.1.3-blueviolet)
+![Version](https://img.shields.io/badge/Version-v4.2.0-blueviolet)
 
 **🌐 언어**: [English](README.md) · **한국어** (이 페이지) · [Modrinth 소개글](MODRINTH.md)
 
@@ -33,7 +33,7 @@ PlanetEarth 서버의 상자 GUI 기반 악기 (`악기 - 하프`, `악기 - 베
 
 ## 사용 방법
 
-1. mods 폴더에 jar 설치 (Fabric 1.20.1 + Fabric API 필수)
+1. 자신의 Minecraft 버전에 맞는 jar 설치 ([호환](#호환) 표 참고) — Fabric Loader + Fabric API 필수
 2. **PlanetEarth 서버** 접속 (`planetearth.kr`)
 3. 음악 상자 (예: `악기 - 하프`) 열기 → 모드가 슬롯 자동 캐시
 4. **`\`** (backslash, 메뉴 기본 키) 누르기 → Musix 메뉴 열림
@@ -84,18 +84,31 @@ PlanetEarth 서버의 상자 GUI 기반 악기 (`악기 - 하프`, `악기 - 베
 
 ## 빌드
 
+[Stonecutter](https://stonecutter.kikugie.dev/) 기반 멀티버전. 전 버전 일괄 빌드 (JDK 21 필요):
+
 ```sh
-./gradlew build
+./gradlew chiseledBuild
 ```
 
-산출물: `build/libs/musix-<version>.jar`
+산출물: `versions/<mc>/build/libs/musix-mc<mc>-<version>.jar` (Minecraft 버전마다 1개).
+1.20.2–1.20.4 는 Java 17 바이트코드로, 1.20.5+ 는 Java 21 로 컴파일됩니다. `gradle.properties` 에
+로컬 `org.gradle.java.home` 이 고정돼 있으니 (PC 마다 경로 조정, 또는 그 줄을 지우고 `JAVA_HOME` 을 JDK 21 로 설정).
 
-GitHub Actions가 push 마다 자동 빌드하고, `v*` 태그 push 시 Release 자동 생성합니다.
+GitHub Actions 가 push 마다 전 버전을 빌드하고, `v*` 태그 push 시 Release 에 모두 첨부합니다.
 
 ## 호환
 
-- Minecraft **1.20.1**, Fabric Loader 0.15+, Fabric API
+자신의 Minecraft 버전에 맞는 jar 를 선택하세요:
+
+| Jar | Minecraft | Java |
+|-----|-----------|------|
+| `musix-mc1.20.4-<ver>.jar` | 1.20.2 – 1.20.4 | 17+ |
+| `musix-mc1.20.6-<ver>.jar` | 1.20.5 – 1.20.6 | 21+ |
+| `musix-mc1.21.1-<ver>.jar` | 1.21+ | 21+ |
+
+- Fabric Loader 0.15+, Fabric API
 - **Lunar Client** (Ichor) 검증 완료 — H2 DB shade 처리로 ClassLoader 격리 회피
+- 순수 **1.20.1** 은 미지원 — `Screen.renderBackground` 시그니처가 1.20.2+ 와 다름
 - 라이센스: **CC-BY-NC-SA-4.0**
 
 ## 라이센스
