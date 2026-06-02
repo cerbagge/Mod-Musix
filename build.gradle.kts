@@ -54,6 +54,7 @@ tasks.processResources {
     val javaVer = if (stonecutter.eval(mcVersion, ">=1.20.5")) 21 else 17
 
     val mcDep = when {
+        stonecutter.eval(mcVersion, "=1.20.1") -> ">=1.20 <=1.20.1"
         stonecutter.eval(mcVersion, "=1.20.4") -> ">=1.20.2 <=1.20.4"
         stonecutter.eval(mcVersion, "=1.20.6") -> ">=1.20.5 <=1.20.6"
         stonecutter.eval(mcVersion, "=1.21.1") -> ">=1.21"

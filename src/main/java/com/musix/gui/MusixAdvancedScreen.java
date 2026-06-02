@@ -47,7 +47,10 @@ public class MusixAdvancedScreen extends Screen {
         ).dimensions(startX + (btnW + gap), by, btnW, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("설정 폴더"),
+                //? if >=1.20.2 {
                 btn -> Util.getOperatingSystem().open(FabricLoader.getInstance().getConfigDir().toUri())
+                //?} else
+                /*btn -> Util.getOperatingSystem().open(FabricLoader.getInstance().getConfigDir().toFile())*/
         ).dimensions(startX + (btnW + gap) * 2, by, btnW, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("← 메뉴"),
@@ -61,8 +64,13 @@ public class MusixAdvancedScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // v4.2.0: 1.20.2+ 에서는 super.render 가 배경을 그림 (renderBackground 직접 호출 X)
+        // v5.0.0: 1.20.2+ 는 super.render 가 배경+위젯 / 1.20.1 은 renderBackground 후 super.render
+        //? if >=1.20.2 {
         super.render(context, mouseX, mouseY, delta);
+        //?} else {
+        /*this.renderBackground(context);
+        super.render(context, mouseX, mouseY, delta);*/
+        //?}
         TextRenderer tr = this.textRenderer;
         int cx = this.width / 2;
 

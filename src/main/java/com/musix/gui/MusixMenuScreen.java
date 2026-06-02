@@ -101,8 +101,13 @@ public class MusixMenuScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // v4.2.0: 1.20.2+ 에서는 super.render 가 배경을 그림 (renderBackground 직접 호출 X)
+        // v5.0.0: 1.20.2+ 는 super.render 가 배경+위젯 / 1.20.1 은 renderBackground 후 super.render
+        //? if >=1.20.2 {
         super.render(context, mouseX, mouseY, delta);
+        //?} else {
+        /*this.renderBackground(context);
+        super.render(context, mouseX, mouseY, delta);*/
+        //?}
         TextRenderer tr = this.textRenderer;
         int cx = this.width / 2;
 
@@ -344,13 +349,19 @@ public class MusixMenuScreen extends Screen {
     }
 
     @Override
+    //? if >=1.20.2 {
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double amount) {
+    //?} else
+    /*public boolean mouseScrolled(double mouseX, double mouseY, double amount) {*/
         if (mouseY >= listTop && mouseY <= listBottom) {
             scroll -= (int) (amount * ROW_HEIGHT * 2);
             clampScroll();
             return true;
         }
+        //? if >=1.20.2 {
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, amount);
+        //?} else
+        /*return super.mouseScrolled(mouseX, mouseY, amount);*/
     }
 
     private void clampScroll() {
