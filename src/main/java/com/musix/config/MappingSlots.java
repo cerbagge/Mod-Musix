@@ -197,6 +197,8 @@ public final class MappingSlots {
                 o.addProperty("slot", m.slot);
                 o.addProperty("key", m.defaultKey == null ? "" : m.defaultKey);
                 o.addProperty("modifiers", m.modifiers);
+                o.addProperty("secondaryKey", m.secondaryKey == null ? "" : m.secondaryKey);
+                o.addProperty("secondaryModifiers", m.secondaryModifiers);
                 arr.add(o);
             }
             presets.add(preset, arr);
@@ -230,7 +232,10 @@ public final class MappingSlots {
                 String note = o.get("note").getAsString();
                 String key = o.has("key") ? o.get("key").getAsString() : "";
                 int mods = o.has("modifiers") ? o.get("modifiers").getAsInt() : 0;
-                rows.add(new MusixDatabase.MappingRow(slot, note, key, mods));
+                // v4.2.0: 보조 키 (구버전 JSON 엔 없음 → unbound)
+                String key2 = o.has("secondaryKey") ? o.get("secondaryKey").getAsString() : "";
+                int mods2 = o.has("secondaryModifiers") ? o.get("secondaryModifiers").getAsInt() : 0;
+                rows.add(new MusixDatabase.MappingRow(slot, note, key, mods, key2, mods2));
             }
             if (!rows.isEmpty()) db.replaceMappings(preset, rows);
         }

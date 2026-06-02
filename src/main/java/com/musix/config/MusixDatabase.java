@@ -73,11 +73,16 @@ public final class MusixDatabase {
                     + "note VARCHAR(32) NOT NULL, "
                     + "key_name VARCHAR(128) NOT NULL DEFAULT '', "
                     + "modifiers INT NOT NULL DEFAULT 0, "
+                    + "key2_name VARCHAR(128) NOT NULL DEFAULT '', "
+                    + "modifiers2 INT NOT NULL DEFAULT 0, "
                     + "PRIMARY KEY (preset, slot))");
             // v3.7.1: 기존 사용자 호환 — 옛 스키마에 컬럼이 빠져있을 수 있으므로 안전하게 추가.
             // H2 는 ADD COLUMN IF NOT EXISTS 지원. 기존 데이터는 유지됨.
             migrateAddColumnIfMissing(s, "mappings", "key_name", "VARCHAR(128) NOT NULL DEFAULT ''");
             migrateAddColumnIfMissing(s, "mappings", "modifiers", "INT NOT NULL DEFAULT 0");
+            // v4.2.0: 보조 키 컬럼
+            migrateAddColumnIfMissing(s, "mappings", "key2_name", "VARCHAR(128) NOT NULL DEFAULT ''");
+            migrateAddColumnIfMissing(s, "mappings", "modifiers2", "INT NOT NULL DEFAULT 0");
             return true;
         } catch (SQLException e) {
             LOG.error("[Musix] DB init 실패: {}", e.getMessage());
@@ -118,11 +123,12 @@ public final class MusixDatabase {
         List<MappingRow> list = new ArrayList<>();
         try (Connection c = conn();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT slot, note, key_name, modifiers FROM mappings WHERE preset = ? ORDER BY slot")) {
+                     "SELECT slot, note, key_name, modifiers, key2_name, modifiers2 FROM mappings WHERE preset = ? ORDER BY slot")) {
             ps.setString(1, preset);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next())
-                    list.add(new MappingRow(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getInt(4)));
+                    list.add(new MappingRow(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getInt(4),
+                            rs.getString(5), rs.getInt(6)));
             }
         } catch (SQLException e) {}
         return list;
@@ -166,6 +172,19 @@ public final class MusixDatabase {
         } catch (SQLException e) {}
     }
 
+    /** v4.2.0: 보조 키만 갱신 (메인 키 컬럼 보존). */
+    public void updateMappingSecondaryKey(String preset, int slot, String keyName, int modifiers) {
+        try (Connection c = conn();
+             PreparedStatement ps = c.prepareStatement(
+                     "UPDATE mappings SET key2_name = ?, modifiers2 = ? WHERE preset = ? AND slot = ?")) {
+            ps.setString(1, keyName == null ? "" : keyName);
+            ps.setInt(2, modifiers);
+            ps.setString(3, preset);
+            ps.setInt(4, slot);
+            ps.executeUpdate();
+        } catch (SQLException e) {}
+    }
+
     public void replaceMappings(String preset, List<MappingRow> rows) {
         try (Connection c = conn()) {
             c.setAutoCommit(false);
@@ -174,13 +193,15 @@ public final class MusixDatabase {
                 del.executeUpdate();
             }
             try (PreparedStatement ps = c.prepareStatement(
-                    "INSERT INTO mappings (preset, slot, note, key_name, modifiers) VALUES (?, ?, ?, ?, ?)")) {
+                    "INSERT INTO mappings (preset, slot, note, key_name, modifiers, key2_name, modifiers2) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
                 for (MappingRow r : rows) {
                     ps.setString(1, preset);
                     ps.setInt(2, r.slot());
                     ps.setString(3, r.note());
                     ps.setString(4, r.keyName() == null ? "" : r.keyName());
                     ps.setInt(5, r.modifiers());
+                    ps.setString(6, r.key2Name() == null ? "" : r.key2Name());
+                    ps.setInt(7, r.modifiers2());
                     ps.executeUpdate();
                 }
             }
@@ -205,5 +226,6 @@ public final class MusixDatabase {
         return 0;
     }
 
-    public record MappingRow(int slot, String note, String keyName, int modifiers) {}
+    public record MappingRow(int slot, String note, String keyName, int modifiers,
+                             String key2Name, int modifiers2) {}
 }

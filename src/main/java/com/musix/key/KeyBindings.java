@@ -77,15 +77,19 @@ public final class KeyBindings {
     public static final class NoteEntry {
         private final KeyMapping mapping;
         private InputUtil.Key key;
+        private InputUtil.Key key2; // v4.2.0: 보조 키
 
-        public NoteEntry(KeyMapping mapping, InputUtil.Key key) {
+        public NoteEntry(KeyMapping mapping, InputUtil.Key key, InputUtil.Key key2) {
             this.mapping = mapping;
             this.key = key;
+            this.key2 = key2;
         }
 
         public KeyMapping mapping() { return mapping; }
         public InputUtil.Key key()  { return key; }
-        public int modifiers()      { return mapping.modifiers; }
+        public InputUtil.Key key2() { return key2; }
+        public int modifiers()          { return mapping.modifiers; }
+        public int secondaryModifiers() { return mapping.secondaryModifiers; }
 
         public void setKey(InputUtil.Key newKey, int newModifiers) {
             this.key = newKey;
@@ -96,22 +100,47 @@ public final class KeyBindings {
                     translationKey, this.mapping.modifiers);
         }
 
-        public boolean isUnbound() {
-            return key == null
-                    || key.equals(InputUtil.UNKNOWN_KEY)
-                    || (key.getCategory() == InputUtil.Type.KEYSYM && key.getCode() == GLFW.GLFW_KEY_UNKNOWN);
+        /** v4.2.0: 보조 키 갱신 (메인 키 보존). 해제는 InputUtil.UNKNOWN_KEY 전달. */
+        public void setSecondaryKey(InputUtil.Key newKey, int newModifiers) {
+            this.key2 = newKey;
+            String translationKey = newKey.getTranslationKey();
+            this.mapping.secondaryKey = translationKey;
+            this.mapping.secondaryModifiers = newModifiers & MOD_MASK;
+            MusixDatabase.get().updateMappingSecondaryKey(this.mapping.preset, this.mapping.slot,
+                    translationKey, this.mapping.secondaryModifiers);
+        }
+
+        public boolean isUnbound()          { return keyIsUnbound(key); }
+        public boolean isSecondaryUnbound() { return keyIsUnbound(key2); }
+
+        /** 키가 미설정(null/UNKNOWN)인지. */
+        static boolean keyIsUnbound(InputUtil.Key k) {
+            return k == null
+                    || k.equals(InputUtil.UNKNOWN_KEY)
+                    || (k.getCategory() == InputUtil.Type.KEYSYM && k.getCode() == GLFW.GLFW_KEY_UNKNOWN);
         }
 
         public String displayKey() {
-            String base = key == null ? "?" : key.getLocalizedText().getString();
+            return formatKeyLabel(key, mapping.modifiers);
+        }
+
+        /** v4.2.0: 보조 키 표시. 미설정이면 "-". */
+        public String displaySecondaryKey() {
+            if (isSecondaryUnbound()) return "-";
+            return formatKeyLabel(key2, mapping.secondaryModifiers);
+        }
+
+        /** 키 + modifier 비트를 사람이 읽는 라벨로. (메인/보조 공용) */
+        private static String formatKeyLabel(InputUtil.Key k, int mods) {
+            String base = k == null ? "?" : k.getLocalizedText().getString();
             // v3.7.1: Left/Right Shift, Alt, Ctrl 표기 통합 — 좌/우 구분 없이 한 이름으로.
             base = normalizeLeftRightLabel(base);
-            if (mapping.modifiers == 0) return base;
+            if (mods == 0) return base;
             StringBuilder sb = new StringBuilder();
-            if ((mapping.modifiers & GLFW.GLFW_MOD_CONTROL) != 0) sb.append("Ctrl+");
-            if ((mapping.modifiers & GLFW.GLFW_MOD_ALT) != 0)     sb.append("Alt+");
-            if ((mapping.modifiers & GLFW.GLFW_MOD_SHIFT) != 0)   sb.append("Shift+");
-            if ((mapping.modifiers & MOD_SPACE) != 0)             sb.append("Space+");
+            if ((mods & GLFW.GLFW_MOD_CONTROL) != 0) sb.append("Ctrl+");
+            if ((mods & GLFW.GLFW_MOD_ALT) != 0)     sb.append("Alt+");
+            if ((mods & GLFW.GLFW_MOD_SHIFT) != 0)   sb.append("Shift+");
+            if ((mods & MOD_SPACE) != 0)             sb.append("Space+");
             return sb + base;
         }
 
@@ -125,20 +154,37 @@ public final class KeyBindings {
             return label;
         }
 
-        /** modifier 비교 포함 매칭. currentMods 는 GLFW.glfwGetKey 콜백의 mods 인자. */
+        /** modifier 비교 포함 매칭. 메인 키 또는 보조 키 중 하나라도 맞으면 true. */
         public boolean matches(int keyCode, int scanCode, int currentMods) {
-            if (isUnbound()) return false;
-            InputUtil.Type type = key.getCategory();
+            return matchesMain(keyCode, scanCode, currentMods)
+                    || matchesSecondary(keyCode, scanCode, currentMods);
+        }
+
+        /** 메인 키만 매칭. */
+        public boolean matchesMain(int keyCode, int scanCode, int currentMods) {
+            return matchesOne(key, mapping.modifiers, keyCode, scanCode, currentMods);
+        }
+
+        /** 보조 키만 매칭. */
+        public boolean matchesSecondary(int keyCode, int scanCode, int currentMods) {
+            return matchesOne(key2, mapping.secondaryModifiers, keyCode, scanCode, currentMods);
+        }
+
+        /** 단일 키+modifier 매칭. currentMods 는 GLFW.glfwGetKey 콜백의 mods 인자. */
+        private static boolean matchesOne(InputUtil.Key k, int kMods,
+                                          int keyCode, int scanCode, int currentMods) {
+            if (keyIsUnbound(k)) return false;
+            InputUtil.Type type = k.getCategory();
             boolean keyOk;
             if (type == InputUtil.Type.KEYSYM) {
                 keyOk = keyCode != GLFW.GLFW_KEY_UNKNOWN
-                        && equalKeyCode(key.getCode(), keyCode);
+                        && equalKeyCode(k.getCode(), keyCode);
             } else if (type == InputUtil.Type.SCANCODE) {
-                keyOk = keyCode == GLFW.GLFW_KEY_UNKNOWN && key.getCode() == scanCode;
+                keyOk = keyCode == GLFW.GLFW_KEY_UNKNOWN && k.getCode() == scanCode;
             } else return false;
             if (!keyOk) return false;
             int relevant = currentMods & MOD_MASK;
-            return relevant == this.mapping.modifiers;
+            return relevant == kMods;
         }
 
         /** v3.7.1: Left/Right Shift, Alt, Ctrl 을 같은 키로 취급. */
@@ -175,7 +221,7 @@ public final class KeyBindings {
         for (Map.Entry<String, List<KeyMapping>> e : config.presets.entrySet()) {
             List<NoteEntry> list = new ArrayList<>();
             for (KeyMapping m : e.getValue()) {
-                list.add(new NoteEntry(m, parseKey(m.defaultKey)));
+                list.add(new NoteEntry(m, parseKey(m.defaultKey), parseKey(m.secondaryKey)));
             }
             NOTES_BY_PRESET.put(e.getKey(), list);
         }
@@ -232,6 +278,7 @@ public final class KeyBindings {
         if (defaultKey == null) return;
         int defaultMods = MusixConfig.lookupDefaultModifierForSlot(note.mapping().preset, note.mapping().slot);
         note.setKey(parseKey(defaultKey), defaultMods);
+        note.setSecondaryKey(InputUtil.UNKNOWN_KEY, 0); // v4.2.0: 전체 초기화 시 보조 키 해제
     }
 
     public static void resetPreset(String preset) {
@@ -261,7 +308,9 @@ public final class KeyBindings {
             note.mapping().slot = newSlot;
             rows.add(new MusixDatabase.MappingRow(newSlot, note.mapping().note,
                     note.mapping().defaultKey == null ? "" : note.mapping().defaultKey,
-                    note.mapping().modifiers));
+                    note.mapping().modifiers,
+                    note.mapping().secondaryKey == null ? "" : note.mapping().secondaryKey,
+                    note.mapping().secondaryModifiers));
         }
         MusixDatabase.get().replaceMappings(preset, rows);
         LOG.info("[Musix] '{}' 자동 매핑 완료 ({}음)", preset, needed);
@@ -297,7 +346,9 @@ public final class KeyBindings {
                     note.mapping().slot,
                     note.mapping().note,
                     note.mapping().defaultKey == null ? "" : note.mapping().defaultKey,
-                    note.mapping().modifiers));
+                    note.mapping().modifiers,
+                    note.mapping().secondaryKey == null ? "" : note.mapping().secondaryKey,
+                    note.mapping().secondaryModifiers));
         }
         MusixDatabase.get().replaceMappings(preset, rows);
         LOG.info("[Musix] 이름 기반 자동 매핑: '{}' {}/{} 매칭", preset, matched, notes.size());

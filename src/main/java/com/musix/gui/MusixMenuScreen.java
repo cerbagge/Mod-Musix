@@ -45,6 +45,8 @@ public class MusixMenuScreen extends Screen {
     private int scroll = 0;
     private int listX, listW, listTop, listBottom;
     private int awaitingIndex = -1;
+    private boolean awaitingSecondary = false; // v4.2.0: true면 보조 키 편집 대기
+    private int colMainKeyX, colSecKeyX;        // v4.2.0: 메인/보조 키 칸 X (클릭 히트박스 공유)
     private int conflictIndex = -1;
     private long conflictUntil = 0L;
     private int rowYClickButton, rowYClickAction, rowYDebug, rowYAutoMap, rowYPreset;
@@ -90,6 +92,7 @@ public class MusixMenuScreen extends Screen {
             MusixClient.config().resetSettingsToDefaults();
             KeyBindings.resetPreset(currentPreset());
             awaitingIndex = -1;
+            awaitingSecondary = false;
         }).dimensions(startX + (btnW + gap) * 3, by, btnW, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("닫기"), btn -> this.close())
@@ -154,10 +157,13 @@ public class MusixMenuScreen extends Screen {
         listTop = colLabelY + 12;
         listBottom = this.height - 38;
 
-        int colNote = listX + 12, colSlot = listX + 90, colKey = listX + 160;
+        int colNote = listX + 8, colSlot = listX + 86, colMainKey = listX + 120, colSecKey = listX + 232;
+        this.colMainKeyX = colMainKey;
+        this.colSecKeyX = colSecKey;
         context.drawTextWithShadow(tr, "노트",    colNote, colLabelY, COLOR_LABEL);
         context.drawTextWithShadow(tr, "슬롯",    colSlot, colLabelY, COLOR_LABEL);
-        context.drawTextWithShadow(tr, "현재 키", colKey,  colLabelY, COLOR_LABEL);
+        context.drawTextWithShadow(tr, "메인 키", colMainKey, colLabelY, COLOR_LABEL);
+        context.drawTextWithShadow(tr, "보조 키", colSecKey,  colLabelY, COLOR_LABEL);
         String countHeader = "사용";
         context.drawTextWithShadow(tr, countHeader, listX + listW - tr.getWidth(countHeader) - 10,
                 colLabelY, COLOR_LABEL);
@@ -191,20 +197,28 @@ public class MusixMenuScreen extends Screen {
                 else              noteColor = COLOR_VALUE;   // 본음: 흰색
                 context.drawTextWithShadow(tr, noteName, colNote, rowY, noteColor);
                 context.drawTextWithShadow(tr, "#" + note.mapping().slot, colSlot, rowY, COLOR_VERSION);
-                if (rowIndex == awaitingIndex) {
-                    context.drawTextWithShadow(tr, "▶ 키 입력 (Shift/Alt/Space 조합 가능, ESC=기본값)",
-                            colKey, rowY, COLOR_AWAITING);
+
+                boolean rowConflict = conflictActive && rowIndex == conflictIndex;
+                // 메인 키 칸
+                if (rowIndex == awaitingIndex && !awaitingSecondary) {
+                    context.drawTextWithShadow(tr, "▶ 키 입력", colMainKey, rowY, COLOR_AWAITING);
                 } else {
-                    int keyColor = note.isUnbound() ? COLOR_WARN
-                            : (conflictActive && rowIndex == conflictIndex ? COLOR_WARN : COLOR_VALUE);
-                    context.drawTextWithShadow(tr, note.displayKey(), colKey, rowY, keyColor);
-                    // 사용 횟수 표시
-                    int cnt = MusixStatus.countOf(note.mapping().note);
-                    if (cnt > 0) {
-                        String cntStr = "× " + cnt;
-                        context.drawTextWithShadow(tr, cntStr, listX + listW - tr.getWidth(cntStr) - 10,
-                                rowY, COLOR_OK);
-                    }
+                    int keyColor = note.isUnbound() ? COLOR_WARN : (rowConflict ? COLOR_WARN : COLOR_VALUE);
+                    context.drawTextWithShadow(tr, note.displayKey(), colMainKey, rowY, keyColor);
+                }
+                // 보조 키 칸 (미설정 = 회색 "-")
+                if (rowIndex == awaitingIndex && awaitingSecondary) {
+                    context.drawTextWithShadow(tr, "▶ 키 입력", colSecKey, rowY, COLOR_AWAITING);
+                } else {
+                    int secColor = note.isSecondaryUnbound() ? COLOR_VERSION : (rowConflict ? COLOR_WARN : COLOR_VALUE);
+                    context.drawTextWithShadow(tr, note.displaySecondaryKey(), colSecKey, rowY, secColor);
+                }
+                // 사용 횟수 표시
+                int cnt = MusixStatus.countOf(note.mapping().note);
+                if (cnt > 0) {
+                    String cntStr = "× " + cnt;
+                    context.drawTextWithShadow(tr, cntStr, listX + listW - tr.getWidth(cntStr) - 10,
+                            rowY, COLOR_OK);
                 }
             }
             rowIndex++;
@@ -220,7 +234,9 @@ public class MusixMenuScreen extends Screen {
             else help = "⚠ 키 충돌";
             helpColor = COLOR_WARN;
         } else if (awaitingIndex >= 0) {
-            help = "▶ 매핑할 키를 누르세요 (Shift/Alt/Space 조합 가능). ESC=기본값";
+            help = awaitingSecondary
+                    ? "▶ 보조 키를 누르세요 (Shift/Alt/Space 조합 가능). ESC=해제"
+                    : "▶ 메인 키를 누르세요 (Shift/Alt/Space 조합 가능). ESC=기본값";
             helpColor = COLOR_AWAITING;
         } else {
             help = "Musix 상자에서 키 누르면 음 재생 (상자 제목별로 preset 자동 선택)";
@@ -250,6 +266,7 @@ public class MusixMenuScreen extends Screen {
                     selectedPreset = ta.preset;
                     scroll = 0;
                     awaitingIndex = -1;
+                    awaitingSecondary = false;
                     return true;
                 }
             }
@@ -288,16 +305,25 @@ public class MusixMenuScreen extends Screen {
             if (relY >= 0) {
                 int row = relY / ROW_HEIGHT;
                 if (row >= 0 && row < KeyBindings.getNotes(currentPreset()).size()) {
+                    boolean sec = mouseX >= colSecKeyX - 4; // 보조 키 칸 영역 (그 왼쪽은 메인)
                     if (button == 1) {
-                        applyKeyChange(row, InputUtil.UNKNOWN_KEY, 0);
+                        // 우클릭 = 해당 칸 해제
+                        KeyBindings.NoteEntry n = KeyBindings.getNote(currentPreset(), row);
+                        if (n != null) {
+                            if (sec) n.setSecondaryKey(InputUtil.UNKNOWN_KEY, 0);
+                            else     n.setKey(InputUtil.UNKNOWN_KEY, 0);
+                        }
                         awaitingIndex = -1;
+                        awaitingSecondary = false;
                     } else {
                         awaitingIndex = row;
+                        awaitingSecondary = sec;
                     }
                     return true;
                 }
             }
             awaitingIndex = -1;
+            awaitingSecondary = false;
             return true;
         }
         return false;
@@ -342,6 +368,7 @@ public class MusixMenuScreen extends Screen {
             if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
                 tryResetToDefault(awaitingIndex);
                 awaitingIndex = -1;
+                awaitingSecondary = false;
                 return true;
             }
             // modifier 키 자체는 매핑 안 함 — 사용자가 Shift+1, Space+1 같이 누르도록 대기
@@ -356,6 +383,7 @@ public class MusixMenuScreen extends Screen {
             InputUtil.Key key = InputUtil.fromKeyCode(keyCode, scanCode);
             applyKeyChange(awaitingIndex, key, mods);
             awaitingIndex = -1;
+            awaitingSecondary = false;
             return true;
         }
         KeyBinding menu = KeyBindings.getMenuBinding();
@@ -386,12 +414,29 @@ public class MusixMenuScreen extends Screen {
             conflictUntil = System.currentTimeMillis() + CONFLICT_FLASH_MS;
             return true;
         }
+        // v4.2.0: 자기 음의 반대 칸과 충돌 거부 (같은 음 메인=보조 동일 키 방지)
+        KeyBindings.NoteEntry self = KeyBindings.getNote(currentPreset(), ownIndex);
+        if (self != null) {
+            boolean clashSelf = awaitingSecondary
+                    ? self.matchesMain(keyCode, scanCode, modifiers)
+                    : self.matchesSecondary(keyCode, scanCode, modifiers);
+            if (clashSelf) {
+                conflictIndex = ownIndex;
+                conflictUntil = System.currentTimeMillis() + CONFLICT_FLASH_MS;
+                return true;
+            }
+        }
         return false;
     }
 
     private void tryResetToDefault(int index) {
         KeyBindings.NoteEntry note = KeyBindings.getNote(currentPreset(), index);
         if (note == null) return;
+        // v4.2.0: 보조 키 편집 중 ESC → 보조 키만 해제 (메인 보존)
+        if (awaitingSecondary) {
+            note.setSecondaryKey(InputUtil.UNKNOWN_KEY, 0);
+            return;
+        }
         String defaultTk = MusixConfig.lookupDefaultKeyForSlot(note.mapping().preset, note.mapping().slot);
         if (defaultTk == null) return;
         InputUtil.Key defaultKey;
@@ -400,19 +445,22 @@ public class MusixMenuScreen extends Screen {
         } catch (IllegalArgumentException e) { return; }
         int kc = defaultKey.getCategory() == InputUtil.Type.KEYSYM ? defaultKey.getCode() : GLFW.GLFW_KEY_UNKNOWN;
         int sc = defaultKey.getCategory() == InputUtil.Type.SCANCODE ? defaultKey.getCode() : 0;
-        if (hasConflict(index, kc, sc, 0)) return;
-        KeyBindings.resetNote(note);
+        int defaultMods = MusixConfig.lookupDefaultModifierForSlot(note.mapping().preset, note.mapping().slot);
+        if (hasConflict(index, kc, sc, defaultMods)) return;
+        note.setKey(defaultKey, defaultMods); // v4.2.0: 메인 키만 복원 (보조 키 보존)
     }
 
     private void applyKeyChange(int index, InputUtil.Key key, int modifiers) {
         KeyBindings.NoteEntry note = KeyBindings.getNote(currentPreset(), index);
         if (note == null) return;
-        note.setKey(key, modifiers);
+        if (awaitingSecondary) note.setSecondaryKey(key, modifiers);
+        else                   note.setKey(key, modifiers);
     }
 
     @Override
     public void close() {
         awaitingIndex = -1;
+        awaitingSecondary = false;
         if (this.client != null) this.client.setScreen(this.parent);
     }
 

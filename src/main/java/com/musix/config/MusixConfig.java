@@ -166,7 +166,8 @@ public class MusixConfig {
         for (String preset : ALL_PRESETS) {
             List<KeyMapping> list = new ArrayList<>();
             for (MusixDatabase.MappingRow r : db.getAllMappings(preset)) {
-                list.add(new KeyMapping(preset, r.note(), r.slot(), r.keyName(), r.modifiers()));
+                list.add(new KeyMapping(preset, r.note(), r.slot(), r.keyName(), r.modifiers(),
+                        r.key2Name(), r.modifiers2()));
             }
             config.presets.put(preset, list);
             // 표시 이름 / 매칭 문자열 (사용자가 메뉴에서 설정)
