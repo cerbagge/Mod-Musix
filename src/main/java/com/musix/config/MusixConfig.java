@@ -26,6 +26,14 @@ public class MusixConfig {
      */
     public static final Set<Integer> BLOCKED_SLOTS = Set.of(6, 19, 45, 53);
 
+    /** v5.1.0: 이조 허용 범위 (±2옥타브). */
+    public static final int TRANSPOSE_MIN = -24;
+    public static final int TRANSPOSE_MAX = 24;
+
+    public static int clampTranspose(int v) {
+        return Math.max(TRANSPOSE_MIN, Math.min(TRANSPOSE_MAX, v));
+    }
+
     /** 전체 preset 순서. v3.2.0: 단순화 — drum 과 그 외 (common). */
     public static final List<String> ALL_PRESETS = new ArrayList<>();
     static {
@@ -139,6 +147,8 @@ public class MusixConfig {
     public boolean midiEnabled;
     /** v4.0.0: 연결할 MIDI 장치 이름 (재시작 시 자동 재연결). */
     public String midiDeviceName;
+    /** v5.1.0: 이조(반음 단위). 입력 MIDI 노트에 더해 슬롯 매칭. 범위 -24~+24 (±2옥타브). */
+    public int transposeSemitones;
     /** preset 이름 → 사용자가 정한 표시 이름 (메뉴 표시용). 없으면 preset 이름 그대로. */
     public Map<String, String> presetDisplayNames = new LinkedHashMap<>();
     /** preset 이름 → 매칭할 상자 제목 부분 문자열 (예: "하프"). 매칭되면 그 preset 활성. */
@@ -162,6 +172,7 @@ public class MusixConfig {
         config.autoMapOnOpen   = "true".equalsIgnoreCase(db.getSetting("autoMapOnOpen", "true"));
         config.midiEnabled     = "true".equalsIgnoreCase(db.getSetting("midiEnabled", "false"));
         config.midiDeviceName  = db.getSetting("midiDeviceName", "");
+        config.transposeSemitones = clampTranspose(parseInt(db.getSetting("transposeSemitones", "0"), 0));
 
         for (String preset : ALL_PRESETS) {
             List<KeyMapping> list = new ArrayList<>();
@@ -249,6 +260,10 @@ public class MusixConfig {
     public void setMidiDeviceName(String name) {
         this.midiDeviceName = name == null ? "" : name;
         MusixDatabase.get().setSetting("midiDeviceName", this.midiDeviceName);
+    }
+    public void setTransposeSemitones(int semis) {
+        this.transposeSemitones = clampTranspose(semis);
+        MusixDatabase.get().setSetting("transposeSemitones", Integer.toString(this.transposeSemitones));
     }
     public void setPresetDisplayName(String preset, String name) {
         this.presetDisplayNames.put(preset, name);

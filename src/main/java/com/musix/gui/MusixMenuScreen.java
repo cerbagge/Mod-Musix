@@ -50,6 +50,8 @@ public class MusixMenuScreen extends Screen {
     private int conflictIndex = -1;
     private long conflictUntil = 0L;
     private int rowYClickButton, rowYClickAction, rowYDebug, rowYAutoMap, rowYPreset;
+    /** v5.1.0: 상단 이조 컨트롤 줄 Y / 값 텍스트 중심 X (버튼 사이). */
+    private int transposeRowY, transposeTextX;
     private String autoMapMessage = null;
     private long autoMapUntil = 0L;
     private boolean autoMapSuccess = false;
@@ -97,6 +99,27 @@ public class MusixMenuScreen extends Screen {
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("닫기"), btn -> this.close())
                 .dimensions(startX + (btnW + gap) * 4, by, btnW, 20).build());
+
+        // v5.1.0: 상단 이조 컨트롤 — [-12][-1] (값) [+1][+12]. 메뉴에서만 조절.
+        transposeRowY = 32;
+        int th = 14, twS = 22, twL = 28, tg = 3, valW = 96;
+        int tTotal = twL + tg + twS + tg + valW + tg + twS + tg + twL;
+        int tx2 = (this.width - tTotal) / 2;
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("-12"), b -> adjustTranspose(-12))
+                .dimensions(tx2, transposeRowY, twL, th).build()); tx2 += twL + tg;
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("-1"), b -> adjustTranspose(-1))
+                .dimensions(tx2, transposeRowY, twS, th).build()); tx2 += twS + tg;
+        transposeTextX = tx2 + valW / 2; tx2 += valW + tg;
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("+1"), b -> adjustTranspose(1))
+                .dimensions(tx2, transposeRowY, twS, th).build()); tx2 += twS + tg;
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("+12"), b -> adjustTranspose(12))
+                .dimensions(tx2, transposeRowY, twL, th).build());
+    }
+
+    /** v5.1.0: 이조값 조절 (DB 즉시 저장). */
+    private void adjustTranspose(int delta) {
+        MusixConfig cfg = MusixClient.config();
+        if (cfg != null) cfg.setTransposeSemitones(cfg.transposeSemitones + delta);
     }
 
     @Override
@@ -122,13 +145,18 @@ public class MusixMenuScreen extends Screen {
         rowYAutoMap = -1;
 
         MusixConfig cfg = MusixClient.config();
+        // v5.1.0: 상단 이조 값 표시 ([-12][-1] (값) [+1][+12] 버튼은 init() 에서 추가)
+        int tsv = cfg.transposeSemitones;
+        String tLabel = tsv == 0 ? "이조: 0 (원음)" : "이조: " + (tsv > 0 ? "+" : "") + tsv + " 반음";
+        context.drawCenteredTextWithShadow(tr, tLabel, transposeTextX, transposeRowY + 3,
+                tsv == 0 ? COLOR_VERSION : COLOR_OK);
         String active = KeyBindings.activePresetName();
         String shown = currentPreset();
 
         // ===== preset 탭 UI (상태 박스 자리 없어져서 키 매핑 표가 위로) =====
         listX = 20;
         listW = this.width - 40;
-        int tabsY = 36;
+        int tabsY = 52; // v5.1.0: 상단 이조 컨트롤 줄(32) 공간 확보로 아래로 이동
         int tabH = 14;
         rowYPreset = tabsY;
         tabAreas.clear();
