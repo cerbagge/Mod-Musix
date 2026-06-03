@@ -149,6 +149,8 @@ public class MusixConfig {
     public String midiDeviceName;
     /** v5.1.0: 이조(반음 단위). 입력 MIDI 노트에 더해 슬롯 매칭. 범위 -24~+24 (±2옥타브). */
     public int transposeSemitones;
+    /** v5.2.0: 이조 후 F#2~F#6 범위를 벗어난 음을 옥타브 단위로 접어 재생 (기본 ON). */
+    public boolean octaveFold = true;
     /** preset 이름 → 사용자가 정한 표시 이름 (메뉴 표시용). 없으면 preset 이름 그대로. */
     public Map<String, String> presetDisplayNames = new LinkedHashMap<>();
     /** preset 이름 → 매칭할 상자 제목 부분 문자열 (예: "하프"). 매칭되면 그 preset 활성. */
@@ -173,6 +175,7 @@ public class MusixConfig {
         config.midiEnabled     = "true".equalsIgnoreCase(db.getSetting("midiEnabled", "false"));
         config.midiDeviceName  = db.getSetting("midiDeviceName", "");
         config.transposeSemitones = clampTranspose(parseInt(db.getSetting("transposeSemitones", "0"), 0));
+        config.octaveFold      = !"false".equalsIgnoreCase(db.getSetting("octaveFold", "true"));
 
         for (String preset : ALL_PRESETS) {
             List<KeyMapping> list = new ArrayList<>();
@@ -264,6 +267,10 @@ public class MusixConfig {
     public void setTransposeSemitones(int semis) {
         this.transposeSemitones = clampTranspose(semis);
         MusixDatabase.get().setSetting("transposeSemitones", Integer.toString(this.transposeSemitones));
+    }
+    public void setOctaveFold(boolean enabled) {
+        this.octaveFold = enabled;
+        MusixDatabase.get().setSetting("octaveFold", Boolean.toString(enabled));
     }
     public void setPresetDisplayName(String preset, String name) {
         this.presetDisplayNames.put(preset, name);

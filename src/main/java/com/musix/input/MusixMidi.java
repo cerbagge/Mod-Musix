@@ -149,10 +149,15 @@ public final class MusixMidi {
         String preset = cfg.activePresetForTitle(titleStr);
         // v5.1.0: 이조 적용 — 범위 체크 전에 반음 오프셋을 더한다.
         int playedNote = midiNote + cfg.transposeSemitones;
+        // v5.2.0: 옥타브 접기 — 범위 밖 음을 옥타브 단위로 F#2~F#6 안에 넣는다 (49반음>12라 항상 수렴).
+        if (cfg.octaveFold) {
+            while (playedNote < MIN_MIDI_NOTE) playedNote += 12;
+            while (playedNote > MAX_MIDI_NOTE) playedNote -= 12;
+        }
         String noteName = midiNoteToName(playedNote);
         if (noteName == null) {
             if (cfg.debugMode) {
-                String ts = cfg.transposeSemitones != 0 ? "→" + playedNote : "";
+                String ts = playedNote != midiNote ? "→" + playedNote : "";
                 DebugChat.warn("[MIDI] 범위 밖 노트 " + midiNote + ts + " 무시 (F#2~F#6 만)");
             }
             return;
@@ -180,7 +185,7 @@ public final class MusixMidi {
                     parseAction(cfg.clickAction), client.player);
             MusixStatus.recordNote(noteName, slot);
             if (cfg.debugMode) {
-                String ts = cfg.transposeSemitones != 0 ? "→" + playedNote : "";
+                String ts = playedNote != midiNote ? "→" + playedNote : "";
                 DebugChat.ok("[MIDI] note=" + midiNote + ts + "(" + noteName + ") vel=" + velocity
                         + " → slot=" + slot);
             }
