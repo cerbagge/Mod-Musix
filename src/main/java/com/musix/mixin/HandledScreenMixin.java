@@ -41,11 +41,11 @@ public class HandledScreenMixin {
 
         String preset = cfg.activePresetForTitle(title.getString());
 
-        // v3.12.0: Space 조합 augment
-        int effectiveMods = KeyBindings.augmentModsWithSpace(modifiers);
+        // v3.12.0: Space 조합 augment (v5.3.0: 조합키 10종으로 확장)
+        int effectiveMods = KeyBindings.augmentMods(modifiers);
 
         if (cfg.debugMode) DebugChat.info("[Mixin] preset=" + preset + " key=" + keyCode + " mods=" + effectiveMods
-                + (effectiveMods != modifiers ? "(+Space)" : ""));
+                + (effectiveMods != modifiers ? "(+조합키)" : ""));
 
         for (KeyBindings.NoteEntry note : KeyBindings.getNotes(preset)) {
             if (!note.matches(keyCode, scanCode, effectiveMods)) continue;

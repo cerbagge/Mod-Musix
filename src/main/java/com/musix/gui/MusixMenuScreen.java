@@ -5,6 +5,7 @@ import com.musix.config.LastSeenContainer;
 import com.musix.config.MusixConfig;
 import com.musix.config.MusixStatus;
 import com.musix.key.KeyBindings;
+import com.musix.volume.VolumeController;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -191,16 +192,19 @@ public class MusixMenuScreen extends Screen {
         listTop = colLabelY + 12;
         listBottom = this.height - 38;
 
+        // v5.3.0: 음량 탭은 상자 슬롯/사용 횟수 개념이 없어 컬럼 구성이 다르다
+        boolean volumeTab = MusixConfig.PRESET_VOLUME.equals(shown);
+
         int colNote = listX + 8, colSlot = listX + 86, colMainKey = listX + 120, colSecKey = listX + 232;
         this.colMainKeyX = colMainKey;
         this.colSecKeyX = colSecKey;
-        context.drawTextWithShadow(tr, "노트",    colNote, colLabelY, COLOR_LABEL);
-        context.drawTextWithShadow(tr, "슬롯",    colSlot, colLabelY, COLOR_LABEL);
+        context.drawTextWithShadow(tr, volumeTab ? "동작" : "노트", colNote, colLabelY, COLOR_LABEL);
+        if (!volumeTab) context.drawTextWithShadow(tr, "슬롯", colSlot, colLabelY, COLOR_LABEL);
         context.drawTextWithShadow(tr, "메인 키", colMainKey, colLabelY, COLOR_LABEL);
         context.drawTextWithShadow(tr, "보조 키", colSecKey,  colLabelY, COLOR_LABEL);
-        String countHeader = "사용";
+        String countHeader = volumeTab ? ("현재 음량 " + VolumeController.current()) : "사용";
         context.drawTextWithShadow(tr, countHeader, listX + listW - tr.getWidth(countHeader) - 10,
-                colLabelY, COLOR_LABEL);
+                colLabelY, volumeTab ? COLOR_OK : COLOR_LABEL);
 
         context.fill(listX, listTop, listX + listW, listBottom, COLOR_BG);
         drawBorder(context, listX, listTop, listW, listBottom - listTop);
@@ -230,7 +234,9 @@ public class MusixMenuScreen extends Screen {
                 else if (isSharp) noteColor = COLOR_VERSION; // 반음: 회색
                 else              noteColor = COLOR_VALUE;   // 본음: 흰색
                 context.drawTextWithShadow(tr, noteName, colNote, rowY, noteColor);
-                context.drawTextWithShadow(tr, "#" + note.mapping().slot, colSlot, rowY, COLOR_VERSION);
+                if (!volumeTab) {
+                    context.drawTextWithShadow(tr, "#" + note.mapping().slot, colSlot, rowY, COLOR_VERSION);
+                }
 
                 boolean rowConflict = conflictActive && rowIndex == conflictIndex;
                 // 메인 키 칸
@@ -269,12 +275,21 @@ public class MusixMenuScreen extends Screen {
             helpColor = COLOR_WARN;
         } else if (awaitingIndex >= 0) {
             help = awaitingSecondary
-                    ? "▶ 보조 키를 누르세요 (Shift/Alt/Space 조합 가능). ESC=해제"
-                    : "▶ 메인 키를 누르세요 (Shift/Alt/Space 조합 가능). ESC=기본값";
+                    ? "▶ 보조 키를 누르세요 (Shift/Ctrl/Alt/Win/Space/Tab/CapsLock/Enter/\\/Backspace 조합 가능). ESC=해제"
+                    : "▶ 메인 키를 누르세요 (Shift/Ctrl/Alt/Win/Space/Tab/CapsLock/Enter/\\/Backspace 조합 가능). ESC=기본값";
             helpColor = COLOR_AWAITING;
+        } else if (volumeTab) {
+            help = "방향키 = 음량 1↔10 순환 · Tab+숫자 = 직접 지정 · GUI 밖 좌클릭 ↑ / 우클릭 ↓";
+            helpColor = COLOR_VERSION;
         } else {
             help = "Musix 상자에서 키 누르면 음 재생 (상자 제목별로 preset 자동 선택)";
             helpColor = COLOR_VERSION;
+        }
+        if (volumeTab && awaitingIndex < 0 && !conflictActive) {
+            context.drawCenteredTextWithShadow(tr,
+                    "악기 상자를 열면 음량 " + MusixConfig.VOLUME_DEFAULT + " 로 맞춰집니다. "
+                            + "9~10은 음량이 아니라 들리는 거리가 늘어납니다.",
+                    cx, this.height - 62, COLOR_LABEL);
         }
         context.drawCenteredTextWithShadow(tr, help, cx, this.height - 50, helpColor);
     }
@@ -318,7 +333,8 @@ public class MusixMenuScreen extends Screen {
             return true;
         }
         // 디버그 라인은 고급 설정 화면에서만
-        if (mouseY >= rowYAutoMap && mouseY < rowYAutoMap + ROW_HEIGHT) {
+        // v5.3.0: rowYAutoMap 이 -1 (비활성) 일 때 화면 최상단 클릭이 자동매핑을 실행하던 버그 수정
+        if (rowYAutoMap >= 0 && mouseY >= rowYAutoMap && mouseY < rowYAutoMap + ROW_HEIGHT) {
             // v3.8.0: 이름 기반 매핑 먼저 시도, 0매칭이면 인덱스 기반으로 폴백.
             KeyBindings.AutoMapResult result = KeyBindings.autoMapFromItemNames();
             if (!result.success()) {
@@ -409,13 +425,12 @@ public class MusixMenuScreen extends Screen {
                 awaitingSecondary = false;
                 return true;
             }
-            // modifier 키 자체는 매핑 안 함 — 사용자가 Shift+1, Space+1 같이 누르도록 대기
-            if (isModifierOnlyKey(keyCode)) return true;
-            // v3.12.0: Space 도 modifier 로 취급 (단독 매핑 불가, 조합 전용)
-            if (keyCode == GLFW.GLFW_KEY_SPACE) return true;
+            // v5.3.0: 조합키로 쓰이는 키(Shift/Ctrl/Alt/Win/Space/Tab/CapsLock/Enter/\/Backspace)는
+            // 단독 매핑 불가 — 사용자가 Tab+1 처럼 조합을 완성할 때까지 대기
+            if (KeyBindings.isModifierKey(keyCode)) return true;
 
-            // v3.12.0: Space 가 눌려있으면 MOD_SPACE 비트 추가
-            int effectiveMods = KeyBindings.augmentModsWithSpace(modifiers);
+            // v3.12.0: 눌려있는 조합키 비트를 mods 에 덧붙임
+            int effectiveMods = KeyBindings.augmentMods(modifiers);
             int mods = effectiveMods & KeyBindings.MOD_MASK;
             if (hasConflict(awaitingIndex, keyCode, scanCode, mods)) return true;
             InputUtil.Key key = InputUtil.fromKeyCode(keyCode, scanCode);
@@ -430,13 +445,6 @@ public class MusixMenuScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
-    }
-
-    private static boolean isModifierOnlyKey(int keyCode) {
-        // Ctrl 도 modifier 키로 인식해서 단독 누름은 무시 (조합 매핑 기능은 비활성화, Ctrl 키 자체로 매핑 안 됨)
-        return keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT
-                || keyCode == GLFW.GLFW_KEY_LEFT_CONTROL || keyCode == GLFW.GLFW_KEY_RIGHT_CONTROL
-                || keyCode == GLFW.GLFW_KEY_LEFT_ALT || keyCode == GLFW.GLFW_KEY_RIGHT_ALT;
     }
 
     private boolean hasConflict(int ownIndex, int keyCode, int scanCode, int modifiers) {

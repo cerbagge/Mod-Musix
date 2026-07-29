@@ -1,10 +1,10 @@
 # Musix
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-![Minecraft](https://img.shields.io/badge/Minecraft-1.20.2--1.21.x-brightgreen)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v4.2.0-blueviolet)
+![Version](https://img.shields.io/badge/Version-v5.3.0-blueviolet)
 
 ---
 
@@ -17,14 +17,19 @@
 ### Features
 
 - **Keyboard input → slot click** — auto-activates when the chest title starts with `음악` or `악기`
+- **Volume control** *(v5.3.0)* — arrow keys (wrapping 1↔10), left/right-click outside the GUI, or `Tab + number` for an exact level. Sends `/instruments` with a 0.1 s cooldown
 - **MIDI input support** *(v4.0.0)* — connect any USB MIDI keyboard / pad device and play notes directly
+- **MIDI transpose** *(v5.1.0)* — shift incoming notes by ±24 semitones (±2 octaves) from the menu
+- **Octave folding** *(v5.2.0)* — notes pushed outside F#2~F#6 by transposing are folded back by octaves instead of being dropped
+- **Secondary key per note** *(v4.2.0)* — bind two separate keys to the same note
 - **Statistics screen** *(v4.1.0)* — live line chart of notes-per-minute (last 60 min), TOP 5 most-played notes, common vs drum preset ratio, session timer & total count
 - **Two presets, auto-selected by chest title**
   - `common` — 49 notes (F#2 ~ F#6) for melodic instruments
   - `drum` — 12 notes (bass / hi-hat / snare / cymbal × low/mid/high) for `(드럼)` chests
 - **Auto-mapping** — open a chest once, click "자동 매핑" in the menu → slots align to that chest's actual layout (item-name matching, falls back to index)
 - **Space + key modifier** *(v3.12.0)* — natural notes on plain keys, sharps/flats on `Space + key` (mirrors the user-exported default pattern)
-- **In-game key rebinding** — left-click row to capture next key, right-click to clear, ESC to restore default. Shift / Alt / Space combos supported
+- **In-game key rebinding** — left-click row to capture next key, right-click to clear, ESC to restore default
+- **10 modifier keys** *(v5.3.0)* — `Shift` `Ctrl` `Alt` `Win` `Space` `Tab` `CapsLock` `Enter` `\` `Backspace` usable in combos
 - **Conflict detection** with red flash on duplicates
 - **Key auto-repeat protection** *(v4.0.3)* — holding a key only triggers one click, not a stream
 - **Persistent H2 storage** — settings survive restarts, shaded into the jar so it works under **Lunar Client / Ichor**
@@ -63,6 +68,20 @@
 
 Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
+### Volume control *(v5.3.0+)*
+
+Sends `/instruments <1-10>` as a chat command. Only active while an instrument chest is open.
+
+| Input | Action |
+|---|---|
+| `↑` / `↓` | Volume up / down — **wraps around** (10 → `↑` → 1, 1 → `↓` → 10) |
+| Left / right-click **outside** the chest GUI | Volume up / down |
+| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | Set volume 1~9 and 10 directly |
+
+- **Opening an instrument chest sets the volume to 8** — the mod can't read the server's current volume, so it re-syncs on every chest open.
+- **Levels 9 and 10 do not increase loudness** — they extend how far the sound carries. 8 is the practical maximum volume.
+- 0.1 s cooldown; inputs during the cooldown are dropped. All 12 bindings are rebindable in the **통합 설정** tab.
+
 ### MIDI input *(v4.0.0+)*
 
 - **Menu → 고급 설정 → MIDI 입력** — scans connected MIDI devices, click to connect
@@ -80,7 +99,7 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 ### Compatibility
 
-- Minecraft **1.20.2 – 1.21.x** — separate jar per range (`1.20.2–1.20.4` / `1.20.5–1.20.6` / `1.21+`) · Fabric Loader 0.15+ · Fabric API
+- Minecraft **1.20.1 – 1.21.x** — separate jar per range (`1.20.1` / `1.20.2–1.20.4` / `1.20.5–1.20.6` / `1.21+`) · Fabric Loader 0.15+ · Fabric API
 - **Lunar Client (Ichor)** verified — H2 DB shaded into the jar to bypass ClassLoader isolation
 - License: **CC-BY-NC-SA-4.0**
 
@@ -100,14 +119,19 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 ### 주요 기능
 
 - **키 입력 → 슬롯 클릭** — 상자 제목이 `음악` 또는 `악기` 로 시작하면 자동 작동
+- **음량 조절** *(v5.3.0)* — 방향키 (1↔10 순환), GUI 밖 좌/우클릭, `Tab + 숫자` 직접 지정. `/instruments` 명령 전송 + 0.1 초 쿨다운
 - **MIDI 입력 지원** *(v4.0.0)* — USB MIDI 키보드 / 패드 장치를 연결해서 직접 연주 가능
+- **MIDI 이조** *(v5.1.0)* — 입력 음을 ±24 반음 (±2 옥타브) 이동, 메뉴 상단에서 조절
+- **옥타브 접기** *(v5.2.0)* — 이조로 F#2~F#6 범위를 벗어난 음을 버리지 않고 옥타브 단위로 접어 재생
+- **음별 보조 키** *(v4.2.0)* — 한 음에 서로 다른 키 2개를 지정
 - **통계 화면** *(v4.1.0)* — 분당 입력 꺾은선 그래프 (최근 60분), TOP 5 음, common vs drum preset 비율, 세션 타이머 및 총 입력 수
 - **2 개 preset, 상자 제목에 따라 자동 선택**
   - `공통` — 49 음 (F#2 ~ F#6) — 일반 멜로디 악기용
   - `드럼` — 12 음 (베이스 / 하이햇 / 스네어 / 심벌 × 상중하) — `(드럼)` 상자용
 - **자동 매핑** — 상자 한 번 열고 메뉴에서 "자동 매핑" 클릭 → 해당 상자의 실제 슬롯 배치에 맞게 자동 정렬 (아이템 이름 매칭, 실패 시 인덱스 기반 폴백)
 - **Space + 키 조합 modifier** *(v3.12.0)* — 흰건반은 키 단독, 검은건반은 `Space + 같은 키` (사용자 export default 패턴)
-- **인게임 키 재설정** — 좌클릭으로 변경, 우클릭으로 미설정, ESC 로 기본값 복원. Shift / Alt / Space 조합 모두 지원
+- **인게임 키 재설정** — 좌클릭으로 변경, 우클릭으로 미설정, ESC 로 기본값 복원
+- **조합키 10종** *(v5.3.0)* — `Shift` `Ctrl` `Alt` `Win` `Space` `Tab` `CapsLock` `Enter` `\` `Backspace` 조합 가능
 - **충돌 검사** + 빨간 강조 (중복 키 거부)
 - **키 자동 반복 방지** *(v4.0.3)* — 꾹 눌러도 1번만 클릭
 - **H2 영속 저장** — 설정 자동 보존, jar 에 shade 처리로 **Lunar Client / Ichor** 호환
@@ -146,6 +170,20 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 차단 슬롯 (매핑 X): `6, 19, 45, 53` — 서버 GUI 네비게이션 슬롯.
 
+### 음량 조절 *(v5.3.0+)*
+
+`/instruments <1-10>` 명령을 채팅으로 전송합니다. **악기 상자가 열려 있을 때만** 작동합니다.
+
+| 입력 | 동작 |
+|---|---|
+| `↑` / `↓` | 음량 올리기 / 내리기 — **순환** (10 에서 `↑` → 1, 1 에서 `↓` → 10) |
+| GUI **바깥** 좌 / 우클릭 | 음량 올리기 / 내리기 |
+| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | 음량 1~9 및 10 직접 지정 |
+
+- **악기 상자를 열면 음량이 8 로 설정됩니다** — 모드가 서버의 현재 음량을 읽을 수 없어 상자를 열 때마다 다시 맞춥니다.
+- **9~10 은 소리가 커지는 게 아니라 들리는 거리가 멀어집니다.** 실질 최대 음량은 8 입니다.
+- 0.1 초 쿨다운, 쿨다운 중 입력은 무시됩니다. 12 개 키 모두 **통합 설정** 탭에서 재설정 가능합니다.
+
 ### MIDI 입력 *(v4.0.0+)*
 
 - **메뉴 → 고급 설정 → MIDI 입력** — 연결된 MIDI 장치 목록 스캔, 클릭으로 연결
@@ -163,7 +201,7 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 ### 호환
 
-- Minecraft **1.20.2 – 1.21.x** — 구간별 jar (`1.20.2–1.20.4` / `1.20.5–1.20.6` / `1.21+`) · Fabric Loader 0.15+ · Fabric API
+- Minecraft **1.20.1 – 1.21.x** — 구간별 jar (`1.20.1` / `1.20.2–1.20.4` / `1.20.5–1.20.6` / `1.21+`) · Fabric Loader 0.15+ · Fabric API
 - **Lunar Client (Ichor)** 검증 완료 — H2 DB shade 처리로 ClassLoader 격리 회피
 - 라이센스: **CC-BY-NC-SA-4.0**
 

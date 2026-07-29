@@ -18,6 +18,18 @@ import java.util.Set;
 public class MusixConfig {
     public static final String PRESET_COMMON = "common";
     public static final String PRESET_DRUM   = "drum";
+    /** v5.3.0: 음량 조절 키 preset. 상자 슬롯이 아니라 동작 ID 를 slot 자리에 담는다. */
+    public static final String PRESET_VOLUME = "volume";
+
+    // v5.3.0: volume preset 의 slot 값 = 동작 ID
+    public static final int VOL_ACTION_UP   = 0;
+    public static final int VOL_ACTION_DOWN = 1;
+    /** slot 2~11 → 음량 1~10 직접 지정. */
+    public static final int VOL_ACTION_SET_BASE = 2;
+    /** 서버 기본 음량. 9 이상은 음량이 아니라 가청 거리가 늘어나므로 8 이 실질 최대. */
+    public static final int VOLUME_DEFAULT = 8;
+    public static final int VOLUME_MIN = 1;
+    public static final int VOLUME_MAX = 10;
 
     /**
      * 자동 매핑/dump 에서 항상 제외하는 슬롯.
@@ -34,11 +46,12 @@ public class MusixConfig {
         return Math.max(TRANSPOSE_MIN, Math.min(TRANSPOSE_MAX, v));
     }
 
-    /** 전체 preset 순서. v3.2.0: 단순화 — drum 과 그 외 (common). */
+    /** 전체 preset 순서. v3.2.0: 단순화 — drum 과 그 외 (common). v5.3.0: volume 추가. */
     public static final List<String> ALL_PRESETS = new ArrayList<>();
     static {
         ALL_PRESETS.add(PRESET_COMMON);
         ALL_PRESETS.add(PRESET_DRUM);
+        ALL_PRESETS.add(PRESET_VOLUME);
     }
 
     private static final Logger LOG = LoggerFactory.getLogger("musix/config");
@@ -134,6 +147,23 @@ public class MusixConfig {
                 {"심벌 낮은음",   48, "key.keyboard.z"},
                 {"심벌 중간음",   49, "key.keyboard.x"},
                 {"심벌 높은음",   50, "key.keyboard.c"},
+        });
+
+        // v5.3.0: 음량 조절 (/instruments 1~10). slot 자리 = 동작 ID.
+        // 방향키 위/아래는 1↔10 순환, Tab + 숫자는 절대값 지정 (Tab modifiers=131072=MOD_TAB).
+        DEFAULT_PRESETS.put(PRESET_VOLUME, new Object[][] {
+                {"음량 +",  VOL_ACTION_UP,   "key.keyboard.up",   0},
+                {"음량 -",  VOL_ACTION_DOWN, "key.keyboard.down", 0},
+                {"음량 1",  VOL_ACTION_SET_BASE,     "key.keyboard.1", 131072},
+                {"음량 2",  VOL_ACTION_SET_BASE + 1, "key.keyboard.2", 131072},
+                {"음량 3",  VOL_ACTION_SET_BASE + 2, "key.keyboard.3", 131072},
+                {"음량 4",  VOL_ACTION_SET_BASE + 3, "key.keyboard.4", 131072},
+                {"음량 5",  VOL_ACTION_SET_BASE + 4, "key.keyboard.5", 131072},
+                {"음량 6",  VOL_ACTION_SET_BASE + 5, "key.keyboard.6", 131072},
+                {"음량 7",  VOL_ACTION_SET_BASE + 6, "key.keyboard.7", 131072},
+                {"음량 8",  VOL_ACTION_SET_BASE + 7, "key.keyboard.8", 131072},
+                {"음량 9",  VOL_ACTION_SET_BASE + 8, "key.keyboard.9", 131072},
+                {"음량 10", VOL_ACTION_SET_BASE + 9, "key.keyboard.0", 131072},
         });
     }
 
@@ -335,6 +365,7 @@ public class MusixConfig {
         return switch (preset) {
             case PRESET_COMMON -> "공통 (드럼 외)";
             case PRESET_DRUM   -> "드럼";
+            case PRESET_VOLUME -> "통합 설정";
             default -> preset;
         };
     }

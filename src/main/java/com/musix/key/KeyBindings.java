@@ -24,10 +24,40 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class KeyBindings {
     public static final String CATEGORY = "key.categories.musix";
+
+    // === 조합키 비트 ===
+    // Shift / Ctrl / Alt / Win 은 GLFW 가 mods 인자로 직접 넘겨준다 (좌우 통합).
+    // 그 외 키는 modifier 비트가 없으므로 glfwGetKey 로 눌림을 직접 조회해 high bit 를 부여한다.
     /** v3.12.0: Space 조합 modifier (GLFW 표준 비트와 충돌 안 하는 high bit). */
-    public static final int MOD_SPACE = 0x10000;
-    // v3.6.1: Ctrl 조합 비활성화 — Shift/Alt + Space (v3.12.0) 만 허용
-    public static final int MOD_MASK = GLFW.GLFW_MOD_SHIFT | GLFW.GLFW_MOD_ALT | MOD_SPACE;
+    public static final int MOD_SPACE     = 0x00010000;
+    /** v5.3.0: Space 와 같은 방식으로 확장한 조합키들. */
+    public static final int MOD_TAB       = 0x00020000;
+    public static final int MOD_CAPSLOCK  = 0x00040000;
+    public static final int MOD_ENTER     = 0x00080000;
+    public static final int MOD_BACKSLASH = 0x00100000;
+    public static final int MOD_BACKSPACE = 0x00200000;
+
+    // v5.3.0: Ctrl / Win 조합 허용 (v3.6.1 에서 Ctrl 을 뺐던 제한 해제).
+    public static final int MOD_MASK =
+            GLFW.GLFW_MOD_SHIFT | GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER
+            | MOD_SPACE | MOD_TAB | MOD_CAPSLOCK | MOD_ENTER | MOD_BACKSLASH | MOD_BACKSPACE;
+
+    /** 조합키로 쓰이는 키들 — 단독으로는 음/동작에 매핑할 수 없다. */
+    private static final int[] MODIFIER_KEYS = {
+            GLFW.GLFW_KEY_SPACE, GLFW.GLFW_KEY_TAB, GLFW.GLFW_KEY_CAPS_LOCK,
+            GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER,
+            GLFW.GLFW_KEY_BACKSLASH, GLFW.GLFW_KEY_BACKSPACE,
+            GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT,
+            GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL,
+            GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT,
+            GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER,
+    };
+
+    /** 해당 키가 조합키 전용인지 (단독 매핑 거부 대상). */
+    public static boolean isModifierKey(int keyCode) {
+        for (int k : MODIFIER_KEYS) if (k == keyCode) return true;
+        return false;
+    }
 
     /**
      * v4.0.3: 현재 눌려있는 키 추적. OS 자동 반복 (keyPressed 중복 호출) 방지용.
@@ -50,20 +80,31 @@ public final class KeyBindings {
         pressedKeys.clear();
     }
 
-    /** v3.12.0: 현재 Space 키 눌림 여부 (GLFW 직접 조회). */
-    public static boolean isSpaceHeld() {
+    /** v3.12.0: 특정 키 눌림 여부 (GLFW 직접 조회). */
+    public static boolean isKeyHeld(int glfwKey) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client == null || client.getWindow() == null) return false;
         long window = client.getWindow().getHandle();
         if (window == 0L) return false;
         try {
-            return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_SPACE) == GLFW.GLFW_PRESS;
+            return GLFW.glfwGetKey(window, glfwKey) == GLFW.GLFW_PRESS;
         } catch (Exception e) { return false; }
     }
 
-    /** Space 가 눌려있으면 MOD_SPACE 비트 추가한 mods 반환. */
-    public static int augmentModsWithSpace(int rawMods) {
-        return isSpaceHeld() ? (rawMods | MOD_SPACE) : rawMods;
+    /**
+     * v5.3.0: GLFW 가 mods 로 안 주는 조합키(Space/Tab/CapsLock/Enter/\/Backspace)를
+     * 직접 조회해 비트로 덧붙인다. Shift/Ctrl/Alt/Win 은 rawMods 에 이미 들어있다.
+     */
+    public static int augmentMods(int rawMods) {
+        int m = rawMods;
+        if (isKeyHeld(GLFW.GLFW_KEY_SPACE))      m |= MOD_SPACE;
+        if (isKeyHeld(GLFW.GLFW_KEY_TAB))        m |= MOD_TAB;
+        if (isKeyHeld(GLFW.GLFW_KEY_CAPS_LOCK))  m |= MOD_CAPSLOCK;
+        if (isKeyHeld(GLFW.GLFW_KEY_ENTER)
+                || isKeyHeld(GLFW.GLFW_KEY_KP_ENTER)) m |= MOD_ENTER;
+        if (isKeyHeld(GLFW.GLFW_KEY_BACKSLASH))  m |= MOD_BACKSLASH;
+        if (isKeyHeld(GLFW.GLFW_KEY_BACKSPACE))  m |= MOD_BACKSPACE;
+        return m;
     }
 
     private static final Logger LOG = LoggerFactory.getLogger("musix/keys");
@@ -138,9 +179,15 @@ public final class KeyBindings {
             if (mods == 0) return base;
             StringBuilder sb = new StringBuilder();
             if ((mods & GLFW.GLFW_MOD_CONTROL) != 0) sb.append("Ctrl+");
+            if ((mods & GLFW.GLFW_MOD_SUPER) != 0)   sb.append("Win+");
             if ((mods & GLFW.GLFW_MOD_ALT) != 0)     sb.append("Alt+");
             if ((mods & GLFW.GLFW_MOD_SHIFT) != 0)   sb.append("Shift+");
             if ((mods & MOD_SPACE) != 0)             sb.append("Space+");
+            if ((mods & MOD_TAB) != 0)               sb.append("Tab+");
+            if ((mods & MOD_CAPSLOCK) != 0)          sb.append("CapsLock+");
+            if ((mods & MOD_ENTER) != 0)             sb.append("Enter+");
+            if ((mods & MOD_BACKSLASH) != 0)         sb.append("\\+");
+            if ((mods & MOD_BACKSPACE) != 0)         sb.append("Backspace+");
             return sb + base;
         }
 

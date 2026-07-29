@@ -1,10 +1,10 @@
 # Musix
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-![Minecraft](https://img.shields.io/badge/Minecraft-1.20.2--1.21.x-brightgreen)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v4.2.0-blueviolet)
+![Version](https://img.shields.io/badge/Version-v5.3.0-blueviolet)
 
 **🌐 Languages**: **English** (this page) · [한국어](README_KO.md) · [Modrinth description](MODRINTH.md)
 
@@ -15,18 +15,23 @@ A client-side Fabric mod that lets you play PlanetEarth's chest-GUI based instru
 ## Features
 
 - **Keyboard input → slot click** (auto-active when chest title starts with `음악` or `악기`)
+- **Volume control** *(v5.3.0)* — arrow keys, clicks outside the GUI, or `Tab + number` set the server volume via `/instruments`
 - **MIDI input support** *(v4.0.0)* — connect any USB MIDI keyboard / pad device and play notes directly
+- **MIDI transpose** *(v5.1.0)* — shift incoming notes by ±24 semitones (±2 octaves) from the menu
+- **Octave folding** *(v5.2.0)* — notes pushed outside F#2~F#6 by transposing are folded back by octaves instead of being dropped
+- **Secondary key per note** *(v4.2.0)* — bind two separate keys to the same note
 - **Statistics screen** *(v4.1.0)* — live line chart of notes-per-minute, TOP 5 most-played notes, common vs drum preset ratio, session stats
 - **Two presets, auto-selected by chest title**
   - `common` — 49 notes (F#2 ~ F#6) for melodic instruments
   - `drum` — 12 notes (bass / hi-hat / snare / cymbal × low/mid/high) for `(드럼)` chests
 - **Auto-mapping** — open a chest once, click "자동 매핑" in the menu → slots align to that chest's actual layout (item-name matching, falls back to index)
 - **Space + key modifier** *(v3.12.0)* — natural notes on plain keys, sharps/flats on `Space + key`
-- **In-game key rebinding** — left-click row to capture next key, right-click to clear, ESC to restore default. Shift / Alt / Space combos supported
+- **In-game key rebinding** — left-click row to capture next key, right-click to clear, ESC to restore default
+- **10 modifier keys** *(v5.3.0)* — `Shift` `Ctrl` `Alt` `Win` `Space` `Tab` `CapsLock` `Enter` `\` `Backspace` can all be used in combos
 - **Conflict detection** with red flash on duplicates
 - **Key auto-repeat protection** *(v4.0.3)* — holding a key only triggers one click
 - **Per-note usage counter** (× N) on the mapping list
-- **Preset tabs** (common / drum)
+- **Preset tabs** (common / drum / volume settings)
 - **Persistent H2 storage** (shaded — works under Lunar Client / Ichor)
 - **Click options** — PICKUP / QUICK_MOVE / SWAP / ... + left / right / middle button (in 고급 설정)
 - **Korean + English** locale
@@ -40,7 +45,8 @@ A client-side Fabric mod that lets you play PlanetEarth's chest-GUI based instru
 5. Click **자동 매핑** → slots align to the current chest
 6. Reopen the chest and press the mapped keys to play notes
 7. Switching instruments? Auto-map again on the new chest
-8. **Statistics**: menu → **통계** button · **MIDI**: menu → **고급 설정** → **MIDI 입력**
+8. **Volume**: arrow keys `↑`/`↓` while the chest is open, or `Tab + 1~9,0` for an exact level
+9. **Statistics**: menu → **통계** button · **MIDI**: menu → **고급 설정** → **MIDI 입력**
 
 ## Default key layout (common preset, 49 notes — natural + sharp)
 
@@ -67,12 +73,34 @@ Everything is rebindable in the menu (left-click row, then press the new key com
 
 Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
+## Volume control *(v5.3.0+)*
+
+Sends `/instruments <1-10>` as a chat command. Only active while an instrument chest is open.
+
+| Input | Action |
+|---|---|
+| `↑` / `↓` | Volume up / down — **wraps around** (10 → `↑` → 1, 1 → `↓` → 10) |
+| Left-click **outside** the chest GUI | Volume up |
+| Right-click **outside** the chest GUI | Volume down |
+| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | Set volume 1~9 and 10 directly |
+
+- **Opening an instrument chest sets the volume to 8.** The mod can't read the server's current volume, so it re-syncs on every chest open.
+- **Levels 9 and 10 do not increase loudness** — they increase how far away the sound can be heard. 8 is the practical maximum volume.
+- 0.1 s cooldown between commands; inputs during the cooldown are dropped.
+- All 12 bindings are rebindable in the **통합 설정** tab of the menu.
+
 ## MIDI input *(v4.0.0+)*
 
 - **Menu → 고급 설정 → MIDI 입력** — scans connected MIDI devices, click to connect
 - Auto-reconnects on next launch if the same device is still plugged in
 - Async device scan / connection — won't freeze the client
 - Works alongside keyboard input
+
+### Transpose *(v5.1.0+)* & octave folding *(v5.2.0+)*
+
+- Menu top row: `[-12] [-1] (transpose) [+1] [+12]` — shifts incoming MIDI notes by up to **±24 semitones**
+- **Octave folding** (ON by default, toggle in 고급 설정) — after transposing, notes outside the playable
+  F#2~F#6 range are folded back by whole octaves instead of being silently dropped
 
 ## Statistics screen *(v4.1.0+)*
 
@@ -102,13 +130,13 @@ Pick the jar matching your Minecraft version:
 
 | Jar | Minecraft | Java |
 |-----|-----------|------|
+| `musix-mc1.20.1-<ver>.jar` | 1.20.1 | 17+ |
 | `musix-mc1.20.4-<ver>.jar` | 1.20.2 – 1.20.4 | 17+ |
 | `musix-mc1.20.6-<ver>.jar` | 1.20.5 – 1.20.6 | 21+ |
 | `musix-mc1.21.1-<ver>.jar` | 1.21+ | 21+ |
 
 - Fabric Loader 0.15+, Fabric API
 - **Lunar Client** (Ichor) verified — H2 shaded into jar to avoid ClassLoader isolation
-- Plain **1.20.1** is not supported — its `Screen.renderBackground` signature differs from 1.20.2+
 - License: **CC-BY-NC-SA-4.0**
 
 ## License

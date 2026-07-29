@@ -5,10 +5,13 @@ import com.musix.config.LastSeenContainer;
 import com.musix.config.MusixConfig;
 import com.musix.config.MusixStatus;
 import com.musix.gui.MusixMenuScreen;
+import com.musix.mixin.HandledScreenAccessor;
 import com.musix.util.DebugChat;
+import com.musix.volume.VolumeController;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
@@ -40,6 +43,9 @@ public final class KeyHandler {
                     KeyBindings.releaseKey(key);
                     return true;
                 });
+                // v5.3.0: GUI 밖 좌/우클릭 = 음량 업/다운
+                ScreenMouseEvents.allowMouseClick(screen).register((scr, mouseX, mouseY, button) ->
+                        !handleScreenMouse(client, gcs, mouseX, mouseY, button));
                 if (screen != lastDumpedScreen) {
                     dumpDelayTicks = 10;
                     lastDumpedScreen = screen;
@@ -77,12 +83,20 @@ public final class KeyHandler {
 
         String preset = cfg.activePresetForTitle(title.getString());
 
-        // v3.12.0: Space 가 눌려있으면 mods 에 MOD_SPACE 비트 추가 (Space 조합 지원)
-        int effectiveMods = KeyBindings.augmentModsWithSpace(modifiers);
+        // v3.12.0: 눌려있는 조합키 비트를 mods 에 덧붙임 (v5.3.0: 10종으로 확장)
+        int effectiveMods = KeyBindings.augmentMods(modifiers);
 
         if (cfg.debugMode) DebugChat.info("[KeyHandler] OS=" + MusixClient.osName()
                 + " preset=" + preset + " key=" + key + " mods=" + effectiveMods
-                + (effectiveMods != modifiers ? "(+Space)" : ""));
+                + (effectiveMods != modifiers ? "(+조합키)" : ""));
+
+        // v5.3.0: 음량 조절 키는 연주 preset 과 무관하게 항상 먼저 검사
+        int volAction = matchVolumeAction(key, scancode, effectiveMods);
+        if (volAction >= 0) {
+            if (!KeyBindings.acquireKeyPress(key)) return true; // 꾹 눌러도 1단계만
+            VolumeController.runAction(volAction);
+            return true;
+        }
 
         GenericContainerScreenHandler handler = screen.getScreenHandler();
         int syncId = handler.syncId;
@@ -122,6 +136,44 @@ public final class KeyHandler {
         return false;
     }
 
+    /** v5.3.0: volume preset 에서 매칭되는 동작 ID(slot) 를 반환. 없으면 -1. */
+    private static int matchVolumeAction(int key, int scancode, int mods) {
+        for (KeyBindings.NoteEntry e : KeyBindings.getNotes(MusixConfig.PRESET_VOLUME)) {
+            if (e.matches(key, scancode, mods)) return e.mapping().slot;
+        }
+        return -1;
+    }
+
+    /**
+     * v5.3.0: 악기 상자에서 GUI 사각형 바깥을 클릭하면 음량 조절.
+     * 좌클릭 = 올리기, 우클릭 = 내리기. true 를 반환하면 마크 기본 동작(아이템 버리기)이 취소된다.
+     */
+    private static boolean handleScreenMouse(MinecraftClient client, GenericContainerScreen screen,
+                                             double mouseX, double mouseY, int button) {
+        if (client.player == null) return false;
+        if (button != 0 && button != 1) return false; // 좌/우 클릭만
+        MusixConfig cfg = MusixClient.config();
+        if (cfg == null) return false;
+        Text title = screen.getTitle();
+        if (title == null || !cfg.titleMatchesPrefix(title.getString())) return false;
+
+        HandledScreenAccessor acc = (HandledScreenAccessor) screen;
+        int gx = acc.musix$getX();
+        int gy = acc.musix$getY();
+        int gw = acc.musix$getBackgroundWidth();
+        int gh = acc.musix$getBackgroundHeight();
+        boolean insideGui = mouseX >= gx && mouseX < gx + gw
+                && mouseY >= gy && mouseY < gy + gh;
+        if (insideGui) return false; // GUI 안쪽은 평소대로 슬롯 클릭
+
+        VolumeController.step(button == 0 ? +1 : -1);
+        if (cfg.debugMode) {
+            DebugChat.ok("[음량] GUI 밖 " + (button == 0 ? "좌클릭 +1" : "우클릭 -1")
+                    + " → " + VolumeController.current());
+        }
+        return true;
+    }
+
     private static void dumpContainerSlots(GenericContainerScreen gcs, MusixConfig cfg) {
         Text title = gcs.getTitle();
         if (title == null || !cfg.titleMatchesPrefix(title.getString())) return;
@@ -141,6 +193,9 @@ public final class KeyHandler {
             }
         }
         LastSeenContainer.update(title.getString(), containerRows, nonEmpty, itemNames);
+
+        // v5.3.0: 서버 음량을 알 수 없으므로 악기 상자를 열 때마다 기본값으로 맞춘다
+        VolumeController.syncOnContainerOpen();
 
         // v3.8.0: 상자 열릴 때 아이템 이름 기반 자동 매핑 (옵션, 기본 ON)
         if (cfg.autoMapOnOpen && !itemNames.isEmpty()) {

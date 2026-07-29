@@ -3,7 +3,8 @@
   "package": "com.musix.mixin",
   "compatibilityLevel": "${mixin_compat}",
   "client": [
-    "HandledScreenMixin"
+    "HandledScreenMixin",
+    "HandledScreenAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
