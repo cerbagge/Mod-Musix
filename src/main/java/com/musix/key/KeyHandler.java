@@ -150,8 +150,9 @@ public final class KeyHandler {
     }
 
     /**
-     * v5.3.0: 악기 상자에서 GUI 사각형 바깥을 클릭하면 음량 조절.
-     * 좌클릭 = 올리기, 우클릭 = 내리기. true 를 반환하면 마크 기본 동작(아이템 버리기)이 취소된다.
+     * v5.4.0: GUI 바깥 클릭은 마크 기본 동작(슬롯 -999 패킷)이 곧 서버의 음량 조절이므로
+     * 차단하지 않고 그대로 통과시킨다. 모드는 메뉴 표시용 추적값만 갱신한다.
+     * 항상 false 를 반환 = 마크 기본 처리 유지.
      */
     private static boolean handleScreenMouse(MinecraftClient client, GenericContainerScreen screen,
                                              double mouseX, double mouseY, int button) {
@@ -171,12 +172,12 @@ public final class KeyHandler {
                 && mouseY >= gy && mouseY < gy + gh;
         if (insideGui) return false; // GUI 안쪽은 평소대로 슬롯 클릭
 
-        VolumeController.step(button == 0 ? +1 : -1);
+        VolumeController.notePassiveOutsideClick(button);
         if (cfg.debugMode) {
-            DebugChat.ok("[음량] GUI 밖 " + (button == 0 ? "좌클릭 +1" : "우클릭 -1")
-                    + " → " + VolumeController.current());
+            DebugChat.info("[음량] 사용자가 GUI 밖 " + (button == 0 ? "좌클릭" : "우클릭")
+                    + " → 추정 " + VolumeController.current());
         }
-        return true;
+        return false; // 마크가 슬롯 -999 패킷을 보내도록 통과
     }
 
     private static void dumpContainerSlots(GenericContainerScreen gcs, MusixConfig cfg) {

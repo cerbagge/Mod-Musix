@@ -4,7 +4,7 @@
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v5.3.1-blueviolet)
+![Version](https://img.shields.io/badge/Version-v5.4.0-blueviolet)
 
 **🌐 Languages**: **English** (this page) · [한국어](README_KO.md) · [Modrinth description](MODRINTH.md)
 
@@ -75,18 +75,24 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 ## Volume control *(v5.3.0+)*
 
-Sends `/instruments <1-10>` as a chat command. Only active while an instrument chest is open.
+Only active while an instrument chest is open. **Two different mechanisms:**
 
-| Input | Action |
-|---|---|
-| `↑` / `↓` | Volume up / down — **wraps around** (10 → `↑` → 1, 1 → `↓` → 10). **Hold to keep stepping every 0.1 s** |
-| Left-click **outside** the chest GUI | Volume up |
-| Right-click **outside** the chest GUI | Volume down |
-| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | Set volume 1~9 and 10 directly (one shot, no repeat) |
+| Input | Action | How |
+|---|---|---|
+| `↑` (up arrow) | Volume up | Sends the outside-GUI **left**-click packet (slot `-999`) |
+| `↓` (down arrow) | Volume down | Sends the outside-GUI **right**-click packet (slot `-999`) |
+| Left / right-click **outside** the chest GUI | Volume up / down | Vanilla behaviour, passed straight through |
+| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | Set volume 1~10 exactly | Sends `/instruments <n>` chat command |
 
-- **Opening an instrument chest sets the volume to 8.** The mod can't read the server's current volume, so it re-syncs on every chest open.
+The server treats a click outside the chest GUI as a volume step, so the arrow keys simply fire that
+same packet — no cursor is moved. `Tab + number` is the only path that uses the `/instruments` command.
+
+- **Opening an instrument chest sets the volume to 8** via `/instruments 8`, since the mod can't read the server's current value.
 - **Levels 9 and 10 do not increase loudness** — they increase how far away the sound can be heard. 8 is the practical maximum volume.
-- 0.1 s cooldown between commands; inputs during the cooldown are dropped.
+- 0.1 s cooldown; inputs during the cooldown are dropped. **Hold an arrow key to keep stepping every 0.1 s.**
+- Arrow-key stepping is skipped while you are holding an item on the cursor — slot `-999` would drop it.
+- The "current volume" shown in the menu is an **estimate**; the server owns the real value, so wrap-around
+  at 1/10 follows the server's behaviour rather than the mod's.
 - All 12 bindings are rebindable in the **통합 설정** tab of the menu.
 
 ## MIDI input *(v4.0.0+)*

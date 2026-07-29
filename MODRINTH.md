@@ -4,7 +4,7 @@
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v5.3.1-blueviolet)
+![Version](https://img.shields.io/badge/Version-v5.4.0-blueviolet)
 
 ---
 
@@ -70,17 +70,21 @@ Blocked slots (never mapped): `6, 19, 45, 53` — server GUI navigation slots.
 
 ### Volume control *(v5.3.0+)*
 
-Sends `/instruments <1-10>` as a chat command. Only active while an instrument chest is open.
+Only active while an instrument chest is open. **Two different mechanisms:**
 
-| Input | Action |
-|---|---|
-| `↑` / `↓` | Volume up / down — **wraps around** (10 → `↑` → 1, 1 → `↓` → 10). **Hold to keep stepping every 0.1 s** |
-| Left / right-click **outside** the chest GUI | Volume up / down |
-| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | Set volume 1~9 and 10 directly (one shot, no repeat) |
+| Input | Action | How |
+|---|---|---|
+| `↑` / `↓` | Volume up / down | Fires the outside-GUI left / right-click packet (slot `-999`) |
+| Left / right-click **outside** the chest GUI | Volume up / down | Vanilla behaviour, passed through |
+| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | Set volume 1~10 exactly | Sends `/instruments <n>` |
 
-- **Opening an instrument chest sets the volume to 8** — the mod can't read the server's current volume, so it re-syncs on every chest open.
+The server reads a click outside the chest GUI as a volume step, so arrow keys just fire that same
+packet — no cursor movement. `Tab + number` is the only path using the `/instruments` command.
+
+- **Opening an instrument chest sets the volume to 8** — the mod can't read the server's current volume.
 - **Levels 9 and 10 do not increase loudness** — they extend how far the sound carries. 8 is the practical maximum volume.
-- 0.1 s cooldown; inputs during the cooldown are dropped. All 12 bindings are rebindable in the **통합 설정** tab.
+- 0.1 s cooldown; **hold an arrow key to keep stepping every 0.1 s**. Skipped while holding an item on the cursor.
+- The menu's "current volume" is an estimate — the server owns the real value. All 12 bindings are rebindable in the **통합 설정** tab.
 
 ### MIDI input *(v4.0.0+)*
 
@@ -172,17 +176,21 @@ Sends `/instruments <1-10>` as a chat command. Only active while an instrument c
 
 ### 음량 조절 *(v5.3.0+)*
 
-`/instruments <1-10>` 명령을 채팅으로 전송합니다. **악기 상자가 열려 있을 때만** 작동합니다.
+**악기 상자가 열려 있을 때만** 작동합니다. **두 가지 방식이 섞여 있습니다:**
 
-| 입력 | 동작 |
-|---|---|
-| `↑` / `↓` | 음량 올리기 / 내리기 — **순환** (10 에서 `↑` → 1, 1 에서 `↓` → 10). **꾹 누르면 0.1 초마다 연속 조절** |
-| GUI **바깥** 좌 / 우클릭 | 음량 올리기 / 내리기 |
-| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | 음량 1~9 및 10 직접 지정 (1 회, 반복 없음) |
+| 입력 | 동작 | 방식 |
+|---|---|---|
+| `↑` / `↓` | 음량 올리기 / 내리기 | GUI 밖 좌 / 우클릭 패킷 전송 (슬롯 `-999`) |
+| GUI **바깥** 좌 / 우클릭 | 음량 올리기 / 내리기 | 마크 기본 동작 그대로 통과 |
+| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | 음량 1~10 정확히 지정 | `/instruments <n>` 명령 전송 |
 
-- **악기 상자를 열면 음량이 8 로 설정됩니다** — 모드가 서버의 현재 음량을 읽을 수 없어 상자를 열 때마다 다시 맞춥니다.
+서버가 상자 GUI 밖 클릭을 음량 조절로 처리하므로, 방향키는 커서를 옮기지 않고 같은 패킷만 보냅니다.
+`/instruments` 명령을 쓰는 건 `Tab + 숫자` 뿐입니다.
+
+- **악기 상자를 열면 음량 8 로 맞춰집니다** — 모드가 서버의 현재 값을 읽을 수 없기 때문입니다.
 - **9~10 은 소리가 커지는 게 아니라 들리는 거리가 멀어집니다.** 실질 최대 음량은 8 입니다.
-- 0.1 초 쿨다운, 쿨다운 중 입력은 무시됩니다. 12 개 키 모두 **통합 설정** 탭에서 재설정 가능합니다.
+- 0.1 초 쿨다운. **방향키를 꾹 누르면 0.1 초마다 연속 조절**됩니다. 커서에 아이템을 들고 있으면 건너뜁니다.
+- 메뉴의 "현재 음량" 은 추정치입니다 (실제 값은 서버 관리). 12 개 키 모두 **통합 설정** 탭에서 재설정 가능합니다.
 
 ### MIDI 입력 *(v4.0.0+)*
 
