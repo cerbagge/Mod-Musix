@@ -3,6 +3,7 @@ package com.musix.key;
 import com.musix.MusixClient;
 import com.musix.config.KeyMapping;
 import com.musix.config.LastSeenContainer;
+import com.musix.config.MappingSlots;
 import com.musix.config.MusixConfig;
 import com.musix.config.MusixDatabase;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -378,17 +379,45 @@ public final class KeyBindings {
         if (notes == null) return new AutoMapResult(false, "preset '" + preset + "' 없음");
         if (names.isEmpty()) return new AutoMapResult(false, "캐시된 상자 아이템 없음");
 
+        // v5.5.0: 1단계 — 계산만 한다. DB 는 아직 건드리지 않는다.
         Set<Integer> usedSlots = new HashSet<>();
-        int matched = 0;
-        List<MusixDatabase.MappingRow> rows = new ArrayList<>();
+        Map<NoteEntry, Integer> resolved = new LinkedHashMap<>();
+        List<String> missing = new ArrayList<>();
         for (NoteEntry note : notes) {
-            String noteName = note.mapping().note;
-            Integer found = findSlotByItemName(names, noteName, usedSlots);
+            Integer found = findSlotByItemName(names, note.mapping().note, usedSlots);
             if (found != null) {
-                note.mapping().slot = found;
                 usedSlots.add(found);
-                matched++;
+                resolved.put(note, found);
+            } else {
+                missing.add(note.mapping().note);
             }
+        }
+
+        // v5.5.0: 2단계 — 전부-또는-전무.
+        // 부분 매칭을 적용하면 악의적으로 이름 붙인 아이템 몇 개로 매핑을 선택적으로
+        // 오염시킬 수 있다 (정상 악기 상자는 항상 100% 매칭되므로 손해가 없다).
+        if (!missing.isEmpty()) {
+            LOG.warn("[Musix] 자동 매핑 거부 (preset='{}'): {}/{} 만 매칭, 못 찾은 음 {}개",
+                    preset, resolved.size(), notes.size(), missing.size());
+            LOG.warn("[Musix] 못 찾은 음 (최대 10개): {}",
+                    missing.subList(0, Math.min(10, missing.size())));
+            LOG.warn("[Musix] 상자의 실제 아이템 이름:");
+            for (Map.Entry<Integer, String> e : names.entrySet()) {
+                LOG.warn("  [{}] '{}' (정규화: '{}')",
+                        e.getKey(), e.getValue(), normalizeName(e.getValue()));
+            }
+            return new AutoMapResult(false,
+                    "매핑 유지 — " + resolved.size() + "/" + notes.size()
+                            + " 만 일치 (악기 상자가 아닌 듯)");
+        }
+
+        // v5.5.0: 3단계 — 덮어쓰기 직전 스냅샷 (되돌리기용)
+        MappingSlots.saveAutoBackup(MusixClient.config());
+
+        List<MusixDatabase.MappingRow> rows = new ArrayList<>();
+        for (Map.Entry<NoteEntry, Integer> e : resolved.entrySet()) {
+            NoteEntry note = e.getKey();
+            note.mapping().slot = e.getValue();
             rows.add(new MusixDatabase.MappingRow(
                     note.mapping().slot,
                     note.mapping().note,
@@ -398,25 +427,9 @@ public final class KeyBindings {
                     note.mapping().secondaryModifiers));
         }
         MusixDatabase.get().replaceMappings(preset, rows);
-        LOG.info("[Musix] 이름 기반 자동 매핑: '{}' {}/{} 매칭", preset, matched, notes.size());
-        // v3.10.3: 매칭 실패 시 LOG 에 상세 정보 (사용자 디버그 채팅과 별개로 로그 파일에 남김)
-        if (matched < notes.size()) {
-            LOG.warn("[Musix] 매핑 못한 음 (preset='{}'):", preset);
-            for (NoteEntry note : notes) {
-                if (!usedSlots.contains(note.mapping().slot)
-                        || !names.containsValue(note.mapping().note)) {
-                    LOG.warn("  찾는 음 '{}' (정규화: '{}')",
-                            note.mapping().note, normalizeName(note.mapping().note));
-                }
-            }
-            LOG.warn("[Musix] 슬롯의 실제 아이템 이름:");
-            for (Map.Entry<Integer, String> e : names.entrySet()) {
-                LOG.warn("  [{}] '{}' (정규화: '{}')",
-                        e.getKey(), e.getValue(), normalizeName(e.getValue()));
-            }
-        }
-        return new AutoMapResult(matched > 0,
-                "'" + preset + "' 이름 매칭: " + matched + "/" + notes.size());
+        LOG.info("[Musix] 이름 기반 자동 매핑 완료: '{}' {}음 전부 매칭", preset, notes.size());
+        return new AutoMapResult(true,
+                "'" + preset + "' " + notes.size() + "음 정렬 완료");
     }
 
     /** noteName 과 가장 잘 맞는 슬롯 인덱스 검색. 정확 일치 우선, 없으면 부분 일치. 차단 슬롯 제외. */
@@ -438,13 +451,10 @@ public final class KeyBindings {
             String n = normalizeName(e.getValue());
             if (n.contains(target)) return e.getKey();
         }
-        // 3순위: target 안에 아이템 이름이 포함 (역방향, 드물지만 안전)
-        for (Map.Entry<Integer, String> e : names.entrySet()) {
-            if (exclude.contains(e.getKey())) continue;
-            if (MusixConfig.BLOCKED_SLOTS.contains(e.getKey())) continue;
-            String n = normalizeName(e.getValue());
-            if (!n.isEmpty() && target.contains(n)) return e.getKey();
-        }
+        // v5.5.0: 3순위(역방향 부분일치) 제거.
+        //   target.contains(n) 은 아이템 이름 "C" 하나가 음 "C4"/"C5"/"C6" 에 다 걸려서,
+        //   공격자가 음 이름을 정확히 몰라도 매핑을 흔들 수 있는 통로였다.
+        //   정상 악기 상자는 1~2순위로 100% 매칭되므로 잃는 것이 없다.
         return null;
     }
 

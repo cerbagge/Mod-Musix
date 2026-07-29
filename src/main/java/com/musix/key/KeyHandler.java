@@ -213,9 +213,14 @@ public final class KeyHandler {
         // v3.8.0: 상자 열릴 때 아이템 이름 기반 자동 매핑 (옵션, 기본 ON)
         if (cfg.autoMapOnOpen && !itemNames.isEmpty()) {
             KeyBindings.AutoMapResult r = KeyBindings.autoMapFromItemNames();
-            if (cfg.debugMode) {
-                if (r.success()) DebugChat.ok("[자동매핑] " + r.message());
-                else             DebugChat.warn("[자동매핑] " + r.message());
+            // v5.5.0: debugMode 와 무관하게 항상 알린다.
+            // 매핑이 조용히 바뀌면 오염을 눈치챌 방법이 없었다.
+            if (r.success()) {
+                DebugChat.ok("[자동매핑] " + r.message()
+                        + " (되돌리기: 고급 설정 → 매핑 슬롯 → '"
+                        + com.musix.config.MappingSlots.AUTO_BACKUP_NAME + "')");
+            } else {
+                DebugChat.warn("[자동매핑] " + r.message());
             }
         }
 

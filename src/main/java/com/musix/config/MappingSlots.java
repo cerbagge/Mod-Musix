@@ -32,6 +32,28 @@ public final class MappingSlots {
 
     private MappingSlots() {}
 
+    /**
+     * v5.5.0: 자동 매핑이 매핑을 덮어쓰기 직전에 남기는 되돌리기용 슬롯 이름.
+     * 매핑 슬롯 화면 목록에 그대로 보이므로, 오염되면 [불러오기] 한 번으로 복구된다.
+     */
+    public static final String AUTO_BACKUP_NAME = "직전자동매핑-백업";
+
+    /**
+     * v5.5.0: 자동 매핑 적용 직전 스냅샷. 항상 같은 이름을 써서 1단계만 보관한다.
+     * 실패해도 자동 매핑 자체를 막지는 않는다 (백업은 부가 기능).
+     */
+    public static void saveAutoBackup(MusixConfig cfg) {
+        if (cfg == null) return;
+        try {
+            JsonObject root = buildJson(AUTO_BACKUP_NAME, cfg);
+            String json = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(root);
+            Files.writeString(filePathFor(AUTO_BACKUP_NAME), json);
+            LOG.info("[Musix] 자동 매핑 직전 스냅샷 저장");
+        } catch (IOException e) {
+            LOG.warn("[Musix] 스냅샷 저장 실패 (자동 매핑은 계속): {}", e.getMessage());
+        }
+    }
+
     public static Path slotDir() {
         Path p = FabricLoader.getInstance().getConfigDir().resolve(SLOT_DIR_NAME);
         try { Files.createDirectories(p); } catch (IOException ignored) {}
