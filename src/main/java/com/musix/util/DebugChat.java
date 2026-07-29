@@ -19,6 +19,11 @@ public final class DebugChat {
         send(msg, Formatting.YELLOW);
     }
 
+    /** v5.5.1: 보안 경고 — 디버그 모드와 무관하게 항상 보여야 하는 메시지용. */
+    public static void alert(String msg) {
+        send(msg, Formatting.RED);
+    }
+
     private static void send(String msg, Formatting color) {
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;

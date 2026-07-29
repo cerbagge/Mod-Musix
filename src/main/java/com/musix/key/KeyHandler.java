@@ -32,6 +32,13 @@ public final class KeyHandler {
     private static Screen lastDumpedScreen = null;
     private static int dumpDelayTicks = 0;
 
+    /**
+     * v5.5.1: 이 비율 미만으로 매칭되면 "유저가 이름만 바꿔 만든 상자" 로 판정해 즉시 닫는다.
+     * 정상 악기 상자는 100% 매칭되므로 여유를 크게 둔다 — 서버가 상자 구성을 조금 바꿔
+     * 90% 만 맞는 상황에서 상자를 잘못 닫아 연주를 막는 일을 피하기 위함.
+     */
+    private static final double FAKE_CONTAINER_RATIO = 0.5;
+
     public static void registerEvents() {
         ClientTickEvents.END_CLIENT_TICK.register(KeyHandler::onTick);
         ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
@@ -187,6 +194,23 @@ public final class KeyHandler {
         return false; // 마크가 슬롯 -999 패킷을 보내도록 통과
     }
 
+    /**
+     * v5.5.1: 제목은 "악기"/"음악" 인데 음 이름이 맞지 않는 상자 경고 + 즉시 닫기.
+     * 다른 플레이어가 모루로 이름만 바꿔 만든 상자를 열었을 때의 방어다.
+     * 이 시점에 매핑은 이미 (전부-또는-전무 검증으로) 변경되지 않은 상태다.
+     */
+    private static void warnFakeContainer(GenericContainerScreen gcs, String detail) {
+        DebugChat.alert("⚠ 이 상자는 유저가 만든 상자입니다! 안전을 위해 즉시 닫았습니다");
+        DebugChat.alert("키 매핑은 변경되지 않았습니다. `/co i` 로 pro 랭크 이상이면 설치 로그를 확인할 수 있습니다");
+        DebugChat.warn("[자동매핑] " + detail);
+        try {
+            gcs.close(); // ESC 와 동일 경로 (서버에 close 패킷 전송 + 화면 닫기)
+        } catch (Exception e) {
+            MusixClient.LOG.warn("[Musix] 의심 상자 자동 닫기 실패: {}", e.getMessage());
+            DebugChat.alert("자동 닫기에 실패했습니다 — ESC 키로 직접 닫아주세요");
+        }
+    }
+
     private static void dumpContainerSlots(GenericContainerScreen gcs, MusixConfig cfg) {
         Text title = gcs.getTitle();
         if (title == null || !cfg.titleMatchesPrefix(title.getString())) return;
@@ -219,8 +243,14 @@ public final class KeyHandler {
                 DebugChat.ok("[자동매핑] " + r.message()
                         + " (되돌리기: 고급 설정 → 매핑 슬롯 → '"
                         + com.musix.config.MappingSlots.AUTO_BACKUP_NAME + "')");
+            } else if (r.ratio() < FAKE_CONTAINER_RATIO) {
+                // v5.5.1: "악기" 제목인데 음이 거의 안 맞음 = 유저가 이름만 바꿔 만든 상자.
+                // 경고하고 즉시 닫는다. 매핑은 이미 변경되지 않은 상태다.
+                warnFakeContainer(gcs, r.message());
             } else {
-                DebugChat.warn("[자동매핑] " + r.message());
+                // 대부분 맞는데 일부만 어긋남 = 서버가 상자 구성을 바꿨을 가능성.
+                // 정상 상자를 잘못 닫으면 연주가 막히므로 경고만 한다.
+                DebugChat.warn("[자동매핑] " + r.message() + " — 매핑을 유지했습니다");
             }
         }
 

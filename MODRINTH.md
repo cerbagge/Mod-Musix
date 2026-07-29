@@ -4,7 +4,7 @@
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v5.5.0-blueviolet)
+![Version](https://img.shields.io/badge/Version-v5.5.1-blueviolet)
 
 ---
 

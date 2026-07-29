@@ -408,7 +408,8 @@ public final class KeyBindings {
             }
             return new AutoMapResult(false,
                     "매핑 유지 — " + resolved.size() + "/" + notes.size()
-                            + " 만 일치 (악기 상자가 아닌 듯)");
+                            + " 만 일치 (악기 상자가 아닌 듯)",
+                    resolved.size(), notes.size());
         }
 
         // v5.5.0: 3단계 — 덮어쓰기 직전 스냅샷 (되돌리기용)
@@ -466,5 +467,17 @@ public final class KeyBindings {
         return stripped.trim().toUpperCase().replaceAll("\\s+", "");
     }
 
-    public record AutoMapResult(boolean success, String message) {}
+    /**
+     * @param matched 매칭된 음 개수, @param total 전체 음 개수 (판정 근거 제공용, 없으면 0)
+     */
+    public record AutoMapResult(boolean success, String message, int matched, int total) {
+        public AutoMapResult(boolean success, String message) {
+            this(success, message, 0, 0);
+        }
+
+        /** v5.5.1: 매칭률 (0.0~1.0). total 이 0 이면 판정 불가로 보고 1.0 을 돌려준다. */
+        public double ratio() {
+            return total > 0 ? (double) matched / total : 1.0;
+        }
+    }
 }
