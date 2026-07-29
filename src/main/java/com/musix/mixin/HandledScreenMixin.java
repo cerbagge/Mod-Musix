@@ -58,7 +58,8 @@ public class HandledScreenMixin {
 
             GenericContainerScreenHandler handler = gcs.getScreenHandler();
             int slot = note.mapping().slot;
-            if (slot < 0 || slot >= handler.slots.size()) {
+            // v5.4.1: 상자 영역으로만 제한 (slots.size() 는 플레이어 인벤토리까지 포함)
+            if (slot < 0 || slot >= handler.getRows() * 9) {
                 cir.setReturnValue(true);
                 return;
             }

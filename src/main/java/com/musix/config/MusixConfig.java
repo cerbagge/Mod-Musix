@@ -38,6 +38,25 @@ public class MusixConfig {
      */
     public static final Set<Integer> BLOCKED_SLOTS = Set.of(6, 19, 45, 53);
 
+    /**
+     * v5.4.1: 상자 컨테이너의 최대 슬롯 인덱스 (6줄 = 54칸 → 0~53).
+     * 이 위 인덱스는 플레이어 인벤토리 영역이라 절대 클릭 대상이 되면 안 된다.
+     */
+    public static final int MAX_CONTAINER_SLOT = 53;
+
+    /**
+     * v5.4.1: preset 별 허용 슬롯 상한.
+     * volume preset 은 slot 자리가 동작 ID(0~11) 이고, 나머지는 상자 슬롯이다.
+     */
+    public static int maxSlotFor(String preset) {
+        return PRESET_VOLUME.equals(preset) ? (VOL_ACTION_SET_BASE + 9) : MAX_CONTAINER_SLOT;
+    }
+
+    /** v5.4.1: 저장/불러오기 시 슬롯 값 검증. 범위 밖은 신뢰할 수 없는 데이터로 취급한다. */
+    public static boolean isSlotInRange(String preset, int slot) {
+        return slot >= 0 && slot <= maxSlotFor(preset);
+    }
+
     /** v5.1.0: 이조 허용 범위 (±2옥타브). */
     public static final int TRANSPOSE_MIN = -24;
     public static final int TRANSPOSE_MAX = 24;

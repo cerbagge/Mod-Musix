@@ -224,11 +224,18 @@ public final class MappingSlots {
             if (!el.isJsonArray()) continue;
             JsonArray arr = el.getAsJsonArray();
             List<MusixDatabase.MappingRow> rows = new ArrayList<>();
+            int rejected = 0;
             for (JsonElement e : arr) {
                 if (!e.isJsonObject()) continue;
                 JsonObject o = e.getAsJsonObject();
                 if (!o.has("slot") || !o.has("note")) continue;
                 int slot = o.get("slot").getAsInt();
+                // v5.4.1: 외부 JSON 은 신뢰할 수 없다. 범위 밖 슬롯은 버린다.
+                // 검증이 없으면 "slot": 60 같은 값이 그대로 들어가 플레이어 인벤토리가 클릭된다.
+                if (!MusixConfig.isSlotInRange(preset, slot)) {
+                    rejected++;
+                    continue;
+                }
                 String note = o.get("note").getAsString();
                 String key = o.has("key") ? o.get("key").getAsString() : "";
                 int mods = o.has("modifiers") ? o.get("modifiers").getAsInt() : 0;
@@ -236,6 +243,10 @@ public final class MappingSlots {
                 String key2 = o.has("secondaryKey") ? o.get("secondaryKey").getAsString() : "";
                 int mods2 = o.has("secondaryModifiers") ? o.get("secondaryModifiers").getAsInt() : 0;
                 rows.add(new MusixDatabase.MappingRow(slot, note, key, mods, key2, mods2));
+            }
+            if (rejected > 0) {
+                LOG.warn("[Musix] preset '{}': 범위 밖 슬롯 {}개 거부 (허용 0~{})",
+                        preset, rejected, MusixConfig.maxSlotFor(preset));
             }
             if (!rows.isEmpty()) db.replaceMappings(preset, rows);
         }

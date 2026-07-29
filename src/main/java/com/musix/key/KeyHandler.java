@@ -105,7 +105,10 @@ public final class KeyHandler {
 
         GenericContainerScreenHandler handler = screen.getScreenHandler();
         int syncId = handler.syncId;
-        int slotsCount = handler.slots.size();
+        // v5.4.1: 클릭 대상을 상자 영역으로만 제한한다.
+        // handler.slots.size() 는 플레이어 인벤토리 36칸까지 포함하므로, 매핑이 오염되면
+        // 내 인벤토리 슬롯이 클릭되어 아이템이 이동/유실될 수 있다.
+        int containerSize = handler.getRows() * 9;
 
         for (KeyBindings.NoteEntry note : KeyBindings.getNotes(preset)) {
             if (note.matches(key, scancode, effectiveMods)) {
@@ -114,7 +117,11 @@ public final class KeyHandler {
                     return true; // 이미 눌린 키 (auto-repeat) → 무시
                 }
                 int slot = note.mapping().slot;
-                if (slot < 0 || slot >= slotsCount) return true;
+                if (slot < 0 || slot >= containerSize) {
+                    if (cfg.debugMode) DebugChat.warn("[KeyHandler] 상자 밖 슬롯 " + slot
+                            + " (상자 크기 " + containerSize + ") — 클릭 거부");
+                    return true;
+                }
                 if (MusixConfig.BLOCKED_SLOTS.contains(slot)) {
                     if (cfg.debugMode) DebugChat.warn("[KeyHandler] 차단 슬롯 " + slot + " — 클릭 건너뜀");
                     return true;

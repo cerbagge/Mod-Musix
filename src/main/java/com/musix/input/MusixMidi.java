@@ -173,8 +173,11 @@ public final class MusixMidi {
             if (!noteName.equals(note.mapping().note)) continue;
             int slot = note.mapping().slot;
             GenericContainerScreenHandler handler = gcs.getScreenHandler();
-            if (slot < 0 || slot >= handler.slots.size()) {
-                if (cfg.debugMode) DebugChat.warn("[MIDI] 슬롯 인덱스 범위 밖: " + slot);
+            // v5.4.1: 상자 영역으로만 제한 (slots.size() 는 플레이어 인벤토리까지 포함)
+            int containerSize = handler.getRows() * 9;
+            if (slot < 0 || slot >= containerSize) {
+                if (cfg.debugMode) DebugChat.warn("[MIDI] 상자 밖 슬롯 " + slot
+                        + " (상자 크기 " + containerSize + ") — 클릭 거부");
                 return;
             }
             if (MusixConfig.BLOCKED_SLOTS.contains(slot)) {
