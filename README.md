@@ -4,7 +4,7 @@
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v5.3.0-blueviolet)
+![Version](https://img.shields.io/badge/Version-v5.3.1-blueviolet)
 
 **🌐 Languages**: **English** (this page) · [한국어](README_KO.md) · [Modrinth description](MODRINTH.md)
 
@@ -79,10 +79,10 @@ Sends `/instruments <1-10>` as a chat command. Only active while an instrument c
 
 | Input | Action |
 |---|---|
-| `↑` / `↓` | Volume up / down — **wraps around** (10 → `↑` → 1, 1 → `↓` → 10) |
+| `↑` / `↓` | Volume up / down — **wraps around** (10 → `↑` → 1, 1 → `↓` → 10). **Hold to keep stepping every 0.1 s** |
 | Left-click **outside** the chest GUI | Volume up |
 | Right-click **outside** the chest GUI | Volume down |
-| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | Set volume 1~9 and 10 directly |
+| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | Set volume 1~9 and 10 directly (one shot, no repeat) |
 
 - **Opening an instrument chest sets the volume to 8.** The mod can't read the server's current volume, so it re-syncs on every chest open.
 - **Levels 9 and 10 do not increase loudness** — they increase how far away the sound can be heard. 8 is the practical maximum volume.

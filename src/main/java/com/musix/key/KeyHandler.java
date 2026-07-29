@@ -93,7 +93,12 @@ public final class KeyHandler {
         // v5.3.0: 음량 조절 키는 연주 preset 과 무관하게 항상 먼저 검사
         int volAction = matchVolumeAction(key, scancode, effectiveMods);
         if (volAction >= 0) {
-            if (!KeyBindings.acquireKeyPress(key)) return true; // 꾹 눌러도 1단계만
+            // v5.3.1: 방향키(상대 조절)는 꾹 누르면 OS 자동반복을 그대로 통과시켜
+            // VolumeController 의 0.1초 쿨다운 간격으로 연속 조절된다.
+            // Tab + 숫자(절대 지정)는 반복해도 같은 값이라 처음 누름만 처리.
+            boolean isStep = volAction == MusixConfig.VOL_ACTION_UP
+                    || volAction == MusixConfig.VOL_ACTION_DOWN;
+            if (!isStep && !KeyBindings.acquireKeyPress(key)) return true;
             VolumeController.runAction(volAction);
             return true;
         }

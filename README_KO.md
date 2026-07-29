@@ -4,7 +4,7 @@
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1--1.21.x-brightgreen)
 ![Fabric](https://img.shields.io/badge/Loader-Fabric-orange)
 ![Client](https://img.shields.io/badge/Side-Client%20only-blue)
-![Version](https://img.shields.io/badge/Version-v5.3.0-blueviolet)
+![Version](https://img.shields.io/badge/Version-v5.3.1-blueviolet)
 
 **🌐 언어**: [English](README.md) · **한국어** (이 페이지) · [Modrinth 소개글](MODRINTH.md)
 
@@ -79,10 +79,10 @@ PlanetEarth 서버의 상자 GUI 기반 악기 (`악기 - 하프`, `악기 - 베
 
 | 입력 | 동작 |
 |---|---|
-| `↑` / `↓` | 음량 올리기 / 내리기 — **순환** (10 에서 `↑` → 1, 1 에서 `↓` → 10) |
+| `↑` / `↓` | 음량 올리기 / 내리기 — **순환** (10 에서 `↑` → 1, 1 에서 `↓` → 10). **꾹 누르면 0.1 초마다 연속 조절** |
 | GUI **바깥** 좌클릭 | 음량 올리기 |
 | GUI **바깥** 우클릭 | 음량 내리기 |
-| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | 음량 1~9 및 10 직접 지정 |
+| `Tab + 1` ~ `Tab + 9`, `Tab + 0` | 음량 1~9 및 10 직접 지정 (1 회, 반복 없음) |
 
 - **악기 상자를 열면 음량이 8 로 설정됩니다.** 모드가 서버의 현재 음량을 읽을 수 없어 상자를 열 때마다 다시 맞춥니다.
 - **9~10 은 소리가 커지는 게 아니라 들리는 거리가 멀어집니다.** 실질 최대 음량은 8 입니다.
