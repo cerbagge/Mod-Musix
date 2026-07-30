@@ -232,7 +232,10 @@ public final class KeyHandler {
         LastSeenContainer.update(title.getString(), containerRows, nonEmpty, itemNames);
 
         // v5.3.0: 서버 음량을 알 수 없으므로 악기 상자를 열 때마다 기본값으로 맞춘다
-        VolumeController.syncOnContainerOpen();
+        // v5.6.0: 고급 설정에서 끌 수 있다 (직접 음량을 관리하고 싶은 경우)
+        if (cfg.autoVolumeOnOpen) {
+            VolumeController.syncOnContainerOpen();
+        }
 
         // v3.8.0: 상자 열릴 때 아이템 이름 기반 자동 매핑 (옵션, 기본 ON)
         if (cfg.autoMapOnOpen && !itemNames.isEmpty()) {

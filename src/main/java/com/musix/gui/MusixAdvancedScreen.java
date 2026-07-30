@@ -25,7 +25,8 @@ public class MusixAdvancedScreen extends Screen {
     private final Screen parent;
     private int rowYDebug;
     private int rowYAutoMap;
-    private int rowYOctaveFold; // v5.2.0
+    private int rowYOctaveFold;  // v5.2.0
+    private int rowYAutoVolume;  // v5.6.0
 
     public MusixAdvancedScreen(Screen parent) {
         super(Text.literal("Musix 고급 설정"));
@@ -80,7 +81,7 @@ public class MusixAdvancedScreen extends Screen {
 
         MusixConfig cfg = MusixClient.config();
         int boxY = 44, boxX = 40;
-        int boxW = this.width - 80, boxH = 86; // v5.2.0: 옥타브 접기 행 추가로 +12
+        int boxW = this.width - 80, boxH = 98; // v5.6.0: 음량 고정 행 추가로 +12
         context.fill(boxX, boxY, boxX + boxW, boxY + boxH, COLOR_BG);
         drawBorder(context, boxX, boxY, boxW, boxH);
 
@@ -107,6 +108,15 @@ public class MusixAdvancedScreen extends Screen {
         int ofColor = cfg.octaveFold ? COLOR_OK : COLOR_VERSION;
         context.drawTextWithShadow(tr, (cfg.octaveFold ? "ON" : "OFF") + "  [클릭으로 토글]",
                 boxX + 130, y, ofColor);
+        y += 12;
+
+        // v5.6.0: 상자 열 때 음량 자동 고정
+        rowYAutoVolume = y;
+        context.drawTextWithShadow(tr, "상자 열때 음량 " + MusixConfig.VOLUME_DEFAULT + " 고정:",
+                boxX + 14, y, COLOR_LABEL);
+        int avColor = cfg.autoVolumeOnOpen ? COLOR_OK : COLOR_VERSION;
+        context.drawTextWithShadow(tr, (cfg.autoVolumeOnOpen ? "ON" : "OFF") + "  [클릭으로 토글]",
+                boxX + 130, y, avColor);
         y += 12;
 
         context.drawTextWithShadow(tr, "상자 접두사:", boxX + 14, y, COLOR_LABEL);
@@ -145,6 +155,11 @@ public class MusixAdvancedScreen extends Screen {
         if (mouseY >= rowYOctaveFold && mouseY < rowYOctaveFold + ROW_HEIGHT) {
             MusixConfig cfg = MusixClient.config();
             cfg.setOctaveFold(!cfg.octaveFold);
+            return true;
+        }
+        if (mouseY >= rowYAutoVolume && mouseY < rowYAutoVolume + ROW_HEIGHT) {
+            MusixConfig cfg = MusixClient.config();
+            cfg.setAutoVolumeOnOpen(!cfg.autoVolumeOnOpen);
             return true;
         }
         return false;
