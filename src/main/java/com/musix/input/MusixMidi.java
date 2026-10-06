@@ -149,6 +149,19 @@ public final class MusixMidi {
         String preset = cfg.activePresetForTitle(titleStr);
         // v5.1.0: 이조 적용 — 범위 체크 전에 반음 오프셋을 더한다.
         int playedNote = midiNote + cfg.transposeSemitones;
+        // v5.6.1: 건반 자동 정렬 — 범위 밖 건반을 누르면 이조 값을 옥타브 단위로 옮겨 저장한다.
+        // 건반 전체가 같이 옮겨지므로, 옥타브 접기처럼 최저음 건반이 이미 매핑된 한 옥타브 위 음과
+        // 겹쳐 울리지 않는다. 이조 한계(±24)를 넘어야 하는 경우만 아래 옥타브 접기/무시로 넘어감.
+        int shift = 0;
+        while (playedNote + shift < MIN_MIDI_NOTE) shift += 12;
+        while (playedNote + shift > MAX_MIDI_NOTE) shift -= 12;
+        if (shift != 0 && MusixConfig.clampTranspose(cfg.transposeSemitones + shift)
+                == cfg.transposeSemitones + shift) {
+            cfg.setTransposeSemitones(cfg.transposeSemitones + shift);
+            playedNote += shift;
+            DebugChat.info("MIDI 건반 옥타브 자동 정렬: 이조 " + (cfg.transposeSemitones > 0 ? "+" : "")
+                    + cfg.transposeSemitones + " (메뉴 상단 이조 버튼으로 되돌리기)");
+        }
         // v5.2.0: 옥타브 접기 — 범위 밖 음을 옥타브 단위로 F#2~F#6 안에 넣는다 (49반음>12라 항상 수렴).
         if (cfg.octaveFold) {
             while (playedNote < MIN_MIDI_NOTE) playedNote += 12;
